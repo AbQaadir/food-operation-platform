@@ -1,0 +1,127 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  lint-and-test-frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Use Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+          cache-dependency-path: frontend/package.json
+      - name: Install dependencies
+        run: cd frontend && npm ci
+      - name: Run linter and typecheck
+        run: cd frontend && npm run lint
+      - name: Run frontend unit tests
+        run: cd frontend && npm run test
+      - name: Build frontend
+        run: cd frontend && npm run build
+      - name: Run npm audit security check
+        run: cd frontend && npm audit --audit-level=high || true
+
+  test-node-services:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Use Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Test Notification Service
+        run: |
+          cd services/notification-service
+          npm ci
+          npm test
+          npm run build
+      - name: Test Analytics Service
+        run: |
+          cd services/analytics-service
+          npm ci
+          npm test
+          npm run build
+
+  test-python-service:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install dependencies and test
+        run: |
+          cd services/ai-service
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          PYTHONPATH=. pytest tests/
+
+  test-java-services:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'maven'
+      - name: Initialize PostgreSQL databases
+        run: |
+          docker exec -i ${{ job.services.postgres.id }} psql -U postgres -d postgres < infrastructure/docker/postgres/init-databases.sql || true
+      - name: Run unit & integration tests on all Java microservices
+        run: mvn clean test -B
+
+  docker-build-and-security-scan:
+    needs: [lint-and-test-frontend, test-node-services, test-java-services, test-python-service]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build API Gateway Image
+        run: docker build -t foodops/api-gateway:test services/api-gateway
+      - name: Build Product Service Image
+        run: docker build -t foodops/product-service:test services/product-service
+      - name: Build Frontend Image
+        run: docker build -t foodops/frontend:test frontend
+      - name: Run Trivy Vulnerability Scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'foodops/api-gateway:test'
+          format: 'table'
+          exit-code: '0'
+          ignore-unfixed: true
+          severity: 'CRITICAL,HIGH'
