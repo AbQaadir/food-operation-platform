@@ -1,0 +1,27 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "InventoryLowStockEvent",
+  "type": "object",
+  "properties": {
+    "productId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "warehouseId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "available": {
+      "type": "integer"
+    },
+    "threshold": {
+      "type": "integer"
+    }
+  },
+  "required": [
+    "productId",
+    "warehouseId",
+    "available",
+    "threshold"
+  ]
+}
