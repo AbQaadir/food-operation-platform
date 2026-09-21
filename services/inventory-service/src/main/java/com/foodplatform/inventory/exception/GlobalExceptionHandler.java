@@ -1,0 +1,71 @@
+package com.foodplatform.inventory.exception;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.dao.OptimisticLockingFailureException;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ProblemDetail;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.context.request.ServletWebRequest;
+import org.springframework.web.context.request.WebRequest;
+
+import java.net.URI;
+import java.time.Instant;
+import java.util.stream.Collectors;
+
+@RestControllerAdvice
+public class GlobalExceptionHandler {
+
+    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ProblemDetail handleNotFound(ResourceNotFoundException ex, WebRequest request) {
+        return buildProblemDetail(HttpStatus.NOT_FOUND, "Resource Not Found", ex.getMessage(), "not-found", request);
+    }
+
+    @ExceptionHandler(DuplicateResourceException.class)
+    public ProblemDetail handleDuplicate(DuplicateResourceException ex, WebRequest request) {
+        return buildProblemDetail(HttpStatus.CONFLICT, "Duplicate Resource", ex.getMessage(), "duplicate-resource", request);
+    }
+
+    @ExceptionHandler(InsufficientStockException.class)
+    public ProblemDetail handleInsufficientStock(InsufficientStockException ex, WebRequest request) {
+        return buildProblemDetail(HttpStatus.CONFLICT, "Insufficient Stock", ex.getMessage(), "insufficient-stock", request);
+    }
+
+    @ExceptionHandler(OptimisticLockingFailureException.class)
+    public ProblemDetail handleOptimisticLocking(OptimisticLockingFailureException ex, WebRequest request) {
+        return buildProblemDetail(HttpStatus.CONFLICT, "Concurrency Conflict", "Resource was concurrently modified, please retry", "concurrency-conflict", request);
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ProblemDetail handleValidation(MethodArgumentNotValidException ex, WebRequest request) {
+        String detail = ex.getBindingResult().getFieldErrors().stream()
+                .map(err -> err.getField() + ": " + err.getDefaultMessage())
+                .collect(Collectors.joining(", "));
+        return buildProblemDetail(HttpStatus.BAD_REQUEST, "Validation Error", detail, "validation-error", request);
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ProblemDetail handleGeneric(Exception ex, WebRequest request) {
+        log.error("Unhandled exception in inventory-service", ex);
+        return buildProblemDetail(HttpStatus.INTERNAL_SERVER_ERROR, "Internal Server Error", ex.getMessage(), "internal", request);
+    }
+
+    private ProblemDetail buildProblemDetail(HttpStatus status, String title, String detail, String typeCode, WebRequest request) {
+        ProblemDetail pd = ProblemDetail.forStatusAndDetail(status, detail);
+        pd.setTitle(title);
+        pd.setType(URI.create("https://foodplatform.com/errors/" + typeCode));
+        pd.setProperty("timestamp", Instant.now());
+        if (request instanceof ServletWebRequest swr) {
+            pd.setInstance(URI.create(swr.getRequest().getRequestURI()));
+            String correlationId = swr.getHeader("X-Correlation-Id");
+            if (correlationId != null) {
+                pd.setProperty("correlationId", correlationId);
+            }
+        }
+        return pd;
+    }
+}
