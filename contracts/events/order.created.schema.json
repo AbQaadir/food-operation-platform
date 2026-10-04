@@ -1,0 +1,26 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "OrderCreatedEvent",
+  "type": "object",
+  "properties": {
+    "orderId": { "type": "string", "format": "uuid" },
+    "customerId": { "type": "string", "format": "uuid" },
+    "totalAmount": { "type": "number" },
+    "currency": { "type": "string" },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "productId": { "type": "string", "format": "uuid" },
+          "sku": { "type": "string" },
+          "name": { "type": "string" },
+          "unitPrice": { "type": "number" },
+          "qty": { "type": "integer", "minimum": 1 }
+        },
+        "required": ["productId", "sku", "name", "unitPrice", "qty"]
+      }
+    }
+  },
+  "required": ["orderId", "customerId", "totalAmount", "items"]
+}
