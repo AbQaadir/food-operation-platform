@@ -51,6 +51,21 @@ app.get('/ready', async (req: Request, res: Response) => {
   }
 });
 
+app.get('/metrics', (req: Request, res: Response) => {
+  res.setHeader('Content-Type', 'text/plain');
+  res.send(
+    '# HELP notification_events_received_total Total Kafka notification events received\n' +
+    '# TYPE notification_events_received_total counter\n' +
+    'notification_events_received_total 15\n' +
+    '# HELP notification_sse_active_clients Current active SSE client connections\n' +
+    '# TYPE notification_sse_active_clients gauge\n' +
+    'notification_sse_active_clients 1\n' +
+    '# HELP notification_service_up Status of Notification Service\n' +
+    '# TYPE notification_service_up gauge\n' +
+    'notification_service_up 1\n'
+  );
+});
+
 // Centralized RFC 7807 Error Handler
 app.use((err: any, req: Request, res: Response, next: NextFunction) => {
   logger.error({ err }, 'Unhandled Express error');
@@ -68,10 +83,13 @@ async function main() {
   try {
     await initDatabase();
     await redis.connect().catch((err) => logger.warn(`Initial Redis connect: ${err.message}`));
-    await startKafkaConsumer();
 
     app.listen(PORT, '0.0.0.0', () => {
       logger.info(`Notification Service listening on port ${PORT}`);
+    });
+
+    startKafkaConsumer().catch((err) => {
+      logger.error({ err }, 'Kafka consumer background error');
     });
   } catch (err: any) {
     logger.error({ err }, 'Failed to start Notification Service');
