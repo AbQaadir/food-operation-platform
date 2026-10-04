@@ -66,6 +66,29 @@ jobs:
 
   test-java-services:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - uses: actions/checkout@v4
       - name: Set up JDK 21
@@ -74,6 +97,9 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
           cache: 'maven'
+      - name: Initialize PostgreSQL databases
+        run: |
+          docker exec -i ${{ job.services.postgres.id }} psql -U postgres -d postgres < infrastructure/docker/postgres/init-databases.sql || true
       - name: Run unit & integration tests on all Java microservices
         run: mvn clean test -B
 
