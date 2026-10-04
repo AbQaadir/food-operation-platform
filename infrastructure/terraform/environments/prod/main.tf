@@ -25,11 +25,11 @@ provider "aws" {
 }
 
 module "networking" {
-  source              = "../../modules/networking"
-  environment         = var.environment
-  vpc_cidr            = var.vpc_cidr
-  availability_zones  = ["us-east-1a", "us-east-1b", "us-east-1c"]
-  public_subnet_cidrs = ["10.100.1.0/24", "10.100.2.0/24", "10.100.3.0/24"]
+  source               = "../../modules/networking"
+  environment          = var.environment
+  vpc_cidr             = var.vpc_cidr
+  availability_zones   = ["us-east-1a", "us-east-1b", "us-east-1c"]
+  public_subnet_cidrs  = ["10.100.1.0/24", "10.100.2.0/24", "10.100.3.0/24"]
   private_subnet_cidrs = ["10.100.11.0/24", "10.100.12.0/24", "10.100.13.0/24"]
 }
 
@@ -71,13 +71,13 @@ module "redis" {
 }
 
 module "kafka" {
-  source                 = "../../modules/kafka"
-  environment            = var.environment
-  vpc_id                 = module.networking.vpc_id
-  private_subnet_ids     = [module.networking.private_subnet_ids[0], module.networking.private_subnet_ids[1]]
-  ecs_security_group_id  = module.ecs.ecs_security_group_id
+  source                    = "../../modules/kafka"
+  environment               = var.environment
+  vpc_id                    = module.networking.vpc_id
+  private_subnet_ids        = [module.networking.private_subnet_ids[0], module.networking.private_subnet_ids[1]]
+  ecs_security_group_id     = module.ecs.ecs_security_group_id
   broker_node_instance_type = "kafka.m5.large"
-  number_of_broker_nodes = 2
+  number_of_broker_nodes    = 2
 }
 
 module "ecs" {
