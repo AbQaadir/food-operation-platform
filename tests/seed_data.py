@@ -1,0 +1,133 @@
+#!/usr/bin/env python3
+"""
+Seed script for Enterprise Food Operations Platform.
+Generates >= 5,000 realistic food products and categories in product_db.
+"""
+
+import random
+import subprocess
+import sys
+import uuid
+
+CATEGORIES = [
+    ("Bakery & Bread", "Fresh artisanal bread, pastries, and baked goods"),
+    ("Dairy & Eggs", "Farm fresh dairy, milk, cheeses, butter, and eggs"),
+    ("Meat & Poultry", "High quality beef, chicken, lamb, and pork cuts"),
+    ("Seafood", "Wild caught and sustainably farmed fresh and frozen fish"),
+    ("Fresh Produce", "Organic vegetables, fresh fruits, leafy greens, and herbs"),
+    ("Pantry Staples", "Grains, pasta, cooking oils, vinegars, and spices"),
+    ("Beverages", "Juices, sparkling waters, organic teas, and artisan coffees"),
+    ("Frozen Foods", "Quick freeze meals, vegetables, desserts, and ice creams"),
+    ("Snacks & Confectionery", "Nuts, dried fruits, energy bars, and chocolates"),
+    ("Prepared & Deli", "Ready-to-eat salads, sandwiches, soups, and meal kits")
+]
+
+ADJECTIVES = [
+    "Organic", "Artisanal", "Heritage", "Farm-Fresh", "Cold-Pressed",
+    "Gourmet", "Gluten-Free", "Non-GMO", "Grass-Fed", "Wild-Caught",
+    "Smoked", "Roasted", "Sun-Dried", "Handcrafted", "Raw",
+    "Whole-Grain", "Aged", "Extra-Virgin", "Traditional", "Premium"
+]
+
+NOUNS = [
+    "Sourdough Bread", "Croissant", "Baguette", "Whole Milk", "Cheddar Cheese",
+    "Greek Yogurt", "Free-Range Eggs", "Salted Butter", "Ribeye Steak",
+    "Chicken Breast", "Atlantic Salmon", "Alaskan Cod", "Avocado", "Heirloom Tomatoes",
+    "Baby Spinach", "Extra Virgin Olive Oil", "Quinoa", "Basmati Rice",
+    "Cold Brew Coffee", "Green Tea", "Dark Chocolate", "Roasted Almonds",
+    "Sourdough Pretzel", "Honey Granola", "Fresh Pasta Sauce", "Black Truffle Oil",
+    "Balsamic Glaze", "Pistachio Gelato", "Kombucha Ginger", "Apple Cider"
+]
+
+UNITS = ["KG", "L", "PACK", "BOX", "BOTTLE", "CAN", "UNIT"]
+
+def run_psql(sql: str):
+    cmd = [
+        "docker", "exec", "-i", "food-platform-postgres",
+        "psql", "-U", "postgres", "-d", "product_db"
+    ]
+    res = subprocess.run(cmd, input=sql, text=True, capture_output=True)
+    if res.returncode != 0:
+        print(f"Error running SQL: {res.stderr}", file=sys.stderr)
+        sys.exit(res.returncode)
+    return res.stdout
+
+def main():
+    print("Starting product catalog seed (>= 5,000 items)...")
+    
+    # Check if already seeded
+    count_check = run_psql("SELECT COUNT(*) FROM products;")
+    existing_count = 0
+    for line in count_check.strip().split("\n"):
+        line = line.strip()
+        if line.isdigit():
+            existing_count = int(line)
+            break
+            
+    if existing_count >= 5000:
+        print(f"Catalog already contains {existing_count} products. Skipping seed.")
+        return
+
+    # Seed categories
+    category_ids = []
+    cat_sql_lines = ["BEGIN;"]
+    for name, desc in CATEGORIES:
+        cat_id = str(uuid.uuid4())
+        category_ids.append(cat_id)
+        escaped_name = name.replace("'", "''")
+        cat_sql_lines.append(
+            f"INSERT INTO categories (id, name, created_at) "
+            f"VALUES ('{cat_id}', '{escaped_name}', NOW()) "
+            f"ON CONFLICT (name) DO UPDATE SET name = EXCLUDED.name "
+            f"RETURNING id;"
+        )
+    cat_sql_lines.append("COMMIT;")
+    run_psql("\n".join(cat_sql_lines))
+    print(f"Seeded {len(CATEGORIES)} categories.")
+
+    # Fetch actual category IDs from DB
+    cat_rows = run_psql("SELECT id FROM categories;").strip().split("\n")
+    valid_cat_ids = [line.strip() for line in cat_rows if len(line.strip()) == 36 and "-" in line.strip()]
+    if not valid_cat_ids:
+        valid_cat_ids = category_ids
+
+    # Generate 5,200 products in batches
+    target_count = 5200
+    batch_size = 500
+    total_inserted = 0
+
+    print(f"Generating {target_count} products in batches of {batch_size}...")
+    
+    for batch_num in range(0, target_count, batch_size):
+        sql_lines = ["BEGIN;"]
+        current_batch = min(batch_size, target_count - batch_num)
+        for i in range(current_batch):
+            prod_num = batch_num + i + 1
+            prod_id = str(uuid.uuid4())
+            sku = f"FOOD-{prod_num:05d}"
+            adj = random.choice(ADJECTIVES)
+            noun = random.choice(NOUNS)
+            name = f"{adj} {noun} #{prod_num}"
+            escaped_name = name.replace("'", "''")
+            desc = f"Delicious {adj.lower()} {noun.lower()} sourced from sustainable certified producers. SKU: {sku}."
+            escaped_desc = desc.replace("'", "''")
+            cat_id = random.choice(valid_cat_ids)
+            unit = random.choice(UNITS)
+            price = round(random.uniform(1.99, 149.99), 2)
+            active = "TRUE" if random.random() > 0.05 else "FALSE"
+            
+            sql_lines.append(
+                f"INSERT INTO products (id, sku, name, description, category_id, unit, price, currency, active, created_at, updated_at, version) "
+                f"VALUES ('{prod_id}', '{sku}', '{escaped_name}', '{escaped_desc}', '{cat_id}', '{unit}', {price:.2f}, 'USD', {active}, NOW(), NOW(), 0) "
+                f"ON CONFLICT (sku) DO NOTHING;"
+            )
+        sql_lines.append("COMMIT;")
+        run_psql("\n".join(sql_lines))
+        total_inserted += current_batch
+        print(f"  Inserted batch: {total_inserted}/{target_count} products")
+
+    final_count = run_psql("SELECT COUNT(*) FROM products;")
+    print(f"Seed complete! Current product count:\n{final_count.strip()}")
+
+if __name__ == "__main__":
+    main()
