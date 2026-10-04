@@ -26,16 +26,24 @@ down:
 build:
 	@echo "Building API Gateway..."
 	JAVA_HOME=$(JAVA_HOME) mvn clean package -DskipTests -f services/api-gateway/pom.xml
+	@echo "Building Identity Service..."
+	JAVA_HOME=$(JAVA_HOME) mvn clean package -DskipTests -f services/identity-service/pom.xml
 	@echo "Building Product Service..."
 	JAVA_HOME=$(JAVA_HOME) mvn clean package -DskipTests -f services/product-service/pom.xml
+	@echo "Building Inventory Service..."
+	JAVA_HOME=$(JAVA_HOME) mvn clean package -DskipTests -f services/inventory-service/pom.xml
 	@echo "Building Frontend..."
 	cd frontend && npm run build
 
 test:
 	@echo "Testing API Gateway..."
 	JAVA_HOME=$(JAVA_HOME) mvn test -f services/api-gateway/pom.xml
+	@echo "Testing Identity Service..."
+	JAVA_HOME=$(JAVA_HOME) mvn test -f services/identity-service/pom.xml
 	@echo "Testing Product Service..."
 	JAVA_HOME=$(JAVA_HOME) mvn test -f services/product-service/pom.xml
+	@echo "Testing Inventory Service..."
+	JAVA_HOME=$(JAVA_HOME) mvn test -f services/inventory-service/pom.xml
 	@echo "Testing Frontend..."
 	cd frontend && npm run test
 
