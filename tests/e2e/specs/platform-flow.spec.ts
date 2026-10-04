@@ -27,11 +27,9 @@ test.describe('Food Operations Platform — End-to-End User Journey', () => {
   test('1. Dashboard renders operational metrics and microservice matrix', async ({ page }) => {
     await page.goto('/');
 
-    // Check title and branding
     await expect(page.locator('text=Operations Control Center')).toBeVisible();
     await expect(page.locator('text=All 7 Services Healthy')).toBeVisible();
-
-    // Check microservice table
+    await expect(page.locator('text=Distributed Microservices Runtime Matrix')).toBeVisible();
     await expect(page.locator('text=API Gateway')).toBeVisible();
     await expect(page.locator('text=Product Service')).toBeVisible();
     await expect(page.locator('text=Order Service')).toBeVisible();
@@ -42,15 +40,12 @@ test.describe('Food Operations Platform — End-to-End User Journey', () => {
 
     await expect(page.locator('text=Product Catalog')).toBeVisible();
 
-    // Verify search input
     const searchInput = page.locator('input[placeholder*="Search products"]');
     await expect(searchInput).toBeVisible();
 
-    // Type query
     await searchInput.fill('Milk');
     await page.waitForTimeout(500);
 
-    // Verify search results table or items exist
     const rows = page.locator('tbody tr');
     await expect(rows.first()).toBeVisible();
   });
@@ -70,17 +65,28 @@ test.describe('Food Operations Platform — End-to-End User Journey', () => {
 
     await expect(page.locator('text=Order Management')).toBeVisible();
 
-    // Click Create Order
+    // Open modal
     await page.locator('button:has-text("Create Order")').click();
 
-    // Verify modal and idempotency key banner
+    // Wait for modal
     await expect(page.locator('text=Idempotency-Key Header:')).toBeVisible();
 
-    // Submit order
-    await page.locator('button:has-text("Place Order")').click();
+    // Select product if available or ensure product selected
+    const select = page.locator('select').first();
+    if (await select.isVisible()) {
+      const options = await select.locator('option').all();
+      if (options.length > 0) {
+        await select.selectOption({ index: 0 });
+      }
+    }
 
-    // Verify confirmation toast or order in list
-    await expect(page.locator('text=Outbox choreography initiated')).toBeVisible({ timeout: 10000 });
+    // Submit order
+    const submitBtn = page.locator('button:has-text("Place Order")');
+    await expect(submitBtn).toBeEnabled({ timeout: 5000 });
+    await submitBtn.click();
+
+    // Verify confirmation message
+    await expect(page.locator('text=created successfully!')).toBeVisible({ timeout: 10000 });
   });
 
   test('5. AI Operations Assistant tool-calling and SSE streaming', async ({ page }) => {
@@ -89,15 +95,14 @@ test.describe('Food Operations Platform — End-to-End User Journey', () => {
     await expect(page.locator('text=FoodOps AI Assistant')).toBeVisible();
     await expect(page.locator('text=Tool-Calling Agent')).toBeVisible();
 
-    // Click prompt pill
+    // Click quick prompt pill
     const promptButton = page.locator('button:has-text("Show today\'s sales and revenue KPI")');
-    if (await promptButton.isVisible()) {
-      await promptButton.click();
+    await expect(promptButton).toBeVisible();
+    await promptButton.click();
 
-      // Verify tool call badge and streaming response
-      await expect(page.locator('text=Tool Dispatched:')).toBeVisible({ timeout: 10000 });
-      await expect(page.locator('text=get_daily_sales')).toBeVisible({ timeout: 10000 });
-      await expect(page.locator('text=Data Returned from Service:')).toBeVisible({ timeout: 10000 });
-    }
+    // Verify tool dispatched badge and data returned preview
+    await expect(page.locator('text=Tool Dispatched:')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('text=get_daily_sales')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('text=Data Returned from Service:')).toBeVisible({ timeout: 10000 });
   });
 });

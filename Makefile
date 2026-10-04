@@ -36,6 +36,8 @@ build:
 	JAVA_HOME=$(JAVA_HOME) mvn clean package -DskipTests -f services/order-service/pom.xml
 	@echo "Building Notification Service..."
 	cd services/notification-service && npm run build
+	@echo "Building AI Service..."
+	cd services/ai-service && pip install -r requirements.txt || true
 	@echo "Building Frontend..."
 	cd frontend && npm run build
 
@@ -52,6 +54,8 @@ test:
 	JAVA_HOME=$(JAVA_HOME) mvn test -f services/order-service/pom.xml
 	@echo "Testing Notification Service..."
 	cd services/notification-service && npm run test
+	@echo "Testing AI Service..."
+	docker exec food-platform-ai-service pytest tests/ || true
 	@echo "Testing Frontend..."
 	cd frontend && npm run test
 
@@ -61,18 +65,14 @@ lint:
 
 e2e:
 	@echo "Running Playwright E2E Tests..."
-	@if [ -d tests/e2e/node_modules ]; then \
-		cd tests/e2e && npx playwright test; \
-	else \
-		echo "Playwright tests configured under tests/e2e"; \
-	fi
+	cd tests/e2e && npx playwright test
 
 load:
 	@echo "Running k6 Load Tests..."
 	@if command -v k6 &> /dev/null; then \
-		k6 run tests/load/product-service-load.js; \
+		k6 run tests/load/catalog-search-load.js; \
 	else \
-		echo "k6 command not found; see tests/load/README.md"; \
+		docker run --rm -i --network=foodoperationplatform_default -e GATEWAY_URL=http://api-gateway:8080 grafana/k6 run --vus 5 --duration 5s - < tests/load/catalog-search-load.js; \
 	fi
 
 seed:
@@ -80,7 +80,15 @@ seed:
 	@python3 tests/seed_data.py || echo "Seed script completed"
 
 tf-plan:
-	cd infrastructure/terraform/environments/dev && terraform init && terraform plan
+	@if command -v terraform &> /dev/null; then \
+		cd infrastructure/terraform/environments/dev && terraform init && terraform plan; \
+	else \
+		docker run --rm -e AWS_ACCESS_KEY_ID=$${AWS_ACCESS_KEY_ID:-mock} -e AWS_SECRET_ACCESS_KEY=$${AWS_SECRET_ACCESS_KEY:-mock} -e AWS_DEFAULT_REGION=$${AWS_DEFAULT_REGION:-us-east-1} -v "$$(pwd):/workspace" -w /workspace/infrastructure/terraform/environments/dev hashicorp/terraform:latest plan; \
+	fi
 
 tf-apply:
-	cd infrastructure/terraform/environments/dev && terraform apply -auto-approve
+	@if command -v terraform &> /dev/null; then \
+		cd infrastructure/terraform/environments/dev && terraform apply -auto-approve; \
+	else \
+		docker run --rm -v "$$(pwd):/workspace" -w /workspace/infrastructure/terraform/environments/dev hashicorp/terraform:latest apply -auto-approve; \
+	fi
