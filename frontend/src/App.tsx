@@ -6,6 +6,9 @@ import { store } from './store';
 import { Header } from './components/Header';
 import { Dashboard } from './pages/Dashboard';
 import { Products } from './pages/Products';
+import { Inventory } from './pages/Inventory';
+import { Orders } from './pages/Orders';
+import { AiAssistant } from './pages/AiAssistant';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -27,9 +30,9 @@ export const App: React.FC = () => {
               <Routes>
                 <Route path="/" element={<Dashboard />} />
                 <Route path="/products" element={<Products />} />
-                <Route path="/inventory" element={<div className="p-8 bg-white rounded-xl shadow-sm border border-slate-200">Inventory module (Phase 3)</div>} />
-                <Route path="/orders" element={<div className="p-8 bg-white rounded-xl shadow-sm border border-slate-200">Orders module (Phase 4)</div>} />
-                <Route path="/assistant" element={<div className="p-8 bg-white rounded-xl shadow-sm border border-slate-200">AI Assistant module (Phase 9)</div>} />
+                <Route path="/inventory" element={<Inventory />} />
+                <Route path="/orders" element={<Orders />} />
+                <Route path="/assistant" element={<AiAssistant />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
             </main>
