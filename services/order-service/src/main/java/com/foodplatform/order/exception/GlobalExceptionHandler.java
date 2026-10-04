@@ -37,6 +37,11 @@ public class GlobalExceptionHandler {
         return buildProblemDetail(HttpStatus.BAD_REQUEST, "Validation Error", detail, "validation-error", request);
     }
 
+    @ExceptionHandler(com.foodplatform.order.controller.MissingIdempotencyKeyException.class)
+    public ProblemDetail handleMissingIdempotencyKey(com.foodplatform.order.controller.MissingIdempotencyKeyException ex, WebRequest request) {
+        return buildProblemDetail(HttpStatus.BAD_REQUEST, "Missing Required Header", ex.getMessage(), "missing-header", request);
+    }
+
     @ExceptionHandler(org.springframework.web.bind.MissingRequestHeaderException.class)
     public ProblemDetail handleMissingHeader(org.springframework.web.bind.MissingRequestHeaderException ex, WebRequest request) {
         return buildProblemDetail(HttpStatus.BAD_REQUEST, "Missing Required Header", ex.getMessage(), "missing-header", request);

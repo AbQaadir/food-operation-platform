@@ -40,21 +40,20 @@ public class OrderController {
             @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey,
             @Valid @RequestBody CreateOrderRequest request
     ) throws Exception {
-        // Check idempotency key if provided
-        if (idempotencyKey != null && !idempotencyKey.isBlank()) {
-            Optional<IdempotencyService.CachedResponse> cached = idempotencyService.getCachedResponse(idempotencyKey);
-            if (cached.isPresent()) {
-                OrderDto cachedDto = objectMapper.readValue(cached.get().body(), OrderDto.class);
-                return ResponseEntity.status(cached.get().statusCode()).body(cachedDto);
-            }
+        // Idempotency-Key is mandatory per platform API contract (spec §5.4)
+        if (idempotencyKey == null || idempotencyKey.isBlank()) {
+            throw new MissingIdempotencyKeyException();
+        }
+        Optional<IdempotencyService.CachedResponse> cached = idempotencyService.getCachedResponse(idempotencyKey);
+        if (cached.isPresent()) {
+            OrderDto cachedDto = objectMapper.readValue(cached.get().body(), OrderDto.class);
+            return ResponseEntity.status(cached.get().statusCode()).body(cachedDto);
         }
 
         OrderDto created = orderService.createOrder(request);
 
-        if (idempotencyKey != null && !idempotencyKey.isBlank()) {
-            String json = objectMapper.writeValueAsString(created);
-            idempotencyService.saveResponse(idempotencyKey, HttpStatus.CREATED.value(), json);
-        }
+        String json = objectMapper.writeValueAsString(created);
+        idempotencyService.saveResponse(idempotencyKey, HttpStatus.CREATED.value(), json);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
