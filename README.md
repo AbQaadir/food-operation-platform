@@ -9,6 +9,8 @@
 [![PostgreSQL 16](https://img.shields.io/badge/PostgreSQL-16-blue.svg)](https://www.postgresql.org/)
 [![Redis 7](https://img.shields.io/badge/Redis-7-red.svg)](https://redis.io/)
 [![React 18](https://img.shields.io/badge/React-18-61dafb.svg)](https://react.dev/)
+[![Redux Toolkit](https://img.shields.io/badge/Redux%20Toolkit-2.2-764abc.svg)](https://redux-toolkit.js.org/)
+[![TanStack Query](https://img.shields.io/badge/TanStack%20Query-5.56-ff4154.svg)](https://tanstack.com/query)
 [![FastAPI](https://img.shields.io/badge/FastAPI-Python%203.12-009688.svg)](https://fastapi.tiangolo.com/)
 [![Docker](https://img.shields.io/badge/Docker-Compose-2496ed.svg)](https://www.docker.com/)
 
@@ -37,7 +39,7 @@ flowchart TD
     subgraph CoreServices["Domain Microservices"]
         Identity["identity-service (:8081)\nSpring Boot 3 / BCrypt / JWT / RBAC"]
         Product["product-service (:8082)\nSpring Boot 3 / Trigram GIN / Redis Cache"]
-        Inventory["inventory-service (:8083)\nSpring Boot 3 / Optimistic Locking"]
+        Inventory["inventory-service (:8083)\nSpring Boot 3 / Optimistic & Pessimistic Locks"]
         Order["order-service (:8084)\nSpring Boot 3 / Transactional Outbox / Idempotency"]
         Notification["notification-service (:8085)\nNode.js 22 LTS / Express / SSE Stream"]
         Analytics["analytics-service (:8086)\nNode.js 22 LTS / Event Projections / KPIs"]
@@ -135,12 +137,61 @@ sequenceDiagram
 
 ---
 
-## 3. Technology Stack & Design Rationale
+## 3. Frontend Architecture & State Management
+
+The dashboard frontend is engineered with React 18, TypeScript, and Vite, featuring a strict separation between **Client State** and **Server State**:
+
+```mermaid
+flowchart LR
+    subgraph UIComponents["React UI Components"]
+        Header["Header & Quick Login"]
+        ProductsView["Catalog & Search"]
+        OrdersView["Order Placement & History"]
+        CartDrawer["Cart Drawer"]
+        Modals["Modals & Notifications"]
+    end
+
+    subgraph ClientState["Redux Toolkit (Client State)"]
+        AuthSlice["authSlice\n• JWT Token & Profile\n• Role & Permissions\n• Session Persistence"]
+        CartSlice["cartSlice\n• Shopping Cart Items\n• Quantity & Subtotals\n• Client Validations"]
+        FilterSlice["filterSlice\n• Search Term\n• Category Filters\n• Min/Max Pricing"]
+        UISlice["uiSlice\n• Sidebar State\n• Drawer Visibility\n• Active Modal"]
+        NotifSlice["notificationSlice\n• Unread Badge Count\n• In-app Toast Queue"]
+    end
+
+    subgraph ServerState["TanStack Query (Server State)"]
+        Cache["Query Cache & Revalidation\n• Stale-While-Revalidate\n• Background Sync\n• Optimistic UI Updates"]
+    end
+
+    subgraph Edge["API Gateway (:8080)"]
+        GatewayAPI["REST Endpoints & SSE"]
+    end
+
+    UIComponents <-->|useAppSelector / useAppDispatch| ClientState
+    UIComponents <-->|useQuery / useMutation| ServerState
+    ServerState <-->|HTTP / Bearer Token| Edge
+```
+
+### Separation of Concerns:
+- **Redux Toolkit (`@reduxjs/toolkit` & `react-redux`)**:
+  - `auth`: Stores user identity, authentication status, and decoded JWT roles (`ADMIN`, `MANAGER`, `WAREHOUSE_OPERATOR`, `CUSTOMER`) for immediate role-based UI access control.
+  - `cart`: Maintains active order items, SKU selections, quantities, and real-time total pricing before submission.
+  - `filters`: Preserves search criteria, category filters, and sorting parameters across navigation.
+  - `ui`: Controls responsive drawer toggles, modal states, and visual layout preferences.
+  - `notifications`: Manages unread alert counts and notification popover visibility.
+  - Type-safe access via custom hooks: `useAppDispatch()` and `useAppSelector()`.
+- **TanStack Query (`@tanstack/react-query`)**:
+  - Handles all server interactions, query caching, background data revalidation, deduplication, and HTTP error management across microservices.
+
+---
+
+## 4. Technology Stack & Design Rationale
 
 | Layer | Technology | Version | Rationale & Architectural Purpose |
 |---|---|---|---|
-| **Frontend** | React, TypeScript, Vite, Tailwind | `18.3` | Ultra-fast client build with responsive UI, real-time status banners, and demo user fast-switching. |
-| **State & Cache** | Redux Toolkit, TanStack Query | `2.x / 5.x` | Clean client auth storage in Redux + stale-while-revalidate caching and background polling for API data. |
+| **Frontend** | React, TypeScript, Vite, Tailwind CSS | `18.3` | Ultra-fast client build with responsive UI, real-time status banners, and demo user fast-switching. |
+| **Client State** | Redux Toolkit (`@reduxjs/toolkit`, `react-redux`) | `2.2.7` | Centralized, type-safe client state management for authentication, user sessions, active shopping cart, filters, and UI toggles. |
+| **Server State** | TanStack Query (`@tanstack/react-query`) | `5.56.2` | Declarative server-state caching, automatic stale-while-revalidate synchronization, and background polling from the API Gateway. |
 | **API Gateway** | Spring Cloud Gateway, Java | `21` | Non-blocking reactive gateway with centralized JWT validation, header forwarding (`X-User-Role`, `X-Correlation-Id`), and token-bucket rate limiting. |
 | **Core Services** | Spring Boot, Spring Data JPA | `3.3.4` | Enterprise service framework utilizing Java 21, Flyway migrations, and Hibernate ORM. |
 | **Event Backbone** | Apache Kafka | `3.7.0` | KRaft mode (no ZooKeeper dependency). High-throughput, partitioned event topics with dead-letter queues. |
@@ -154,7 +205,7 @@ sequenceDiagram
 
 ---
 
-## 4. Microservices Directory & Port Map
+## 5. Microservices Directory & Port Map
 
 | Service | Host Port | Runtime | Database | Primary Responsibility |
 |---|---|---|---|---|
@@ -179,7 +230,7 @@ sequenceDiagram
 
 ---
 
-## 5. Quick Start & Local Development
+## 6. Quick Start & Local Development
 
 ### Prerequisites
 - **Docker Desktop** (running)
@@ -192,7 +243,7 @@ sequenceDiagram
 # Compile Java microservices, Node packages, and frontend bundle
 make build
 
-# Start all 17 containers via Docker Compose
+# Start all containers via Docker Compose
 make up
 ```
 
@@ -215,7 +266,7 @@ Open your web browser to:
 
 ---
 
-## 6. Testing & Quality Assurance
+## 7. Testing & Quality Assurance
 
 ### Automated Testing Matrix
 ```bash
@@ -243,7 +294,7 @@ Verified through `InventoryConcurrencyTest.java` with 50 parallel threads compet
 
 ---
 
-## 7. Cloud Deployment & AWS Architecture
+## 8. Cloud Deployment & AWS Architecture
 
 The platform includes production-ready Terraform configurations in `infrastructure/terraform/` deployable to AWS:
 
@@ -265,6 +316,6 @@ make tf-apply
 
 ---
 
-## 8. License
+## 9. License
 
 This project is licensed under the MIT License.
