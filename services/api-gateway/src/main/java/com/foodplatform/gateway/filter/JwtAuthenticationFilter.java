@@ -133,7 +133,7 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
                   "correlationId": "%s"
                 }
                 """,
-                detail.replace(""", "\\\""),
+                detail.replace("\"", "\\\""),
                 exchange.getRequest().getURI().getPath(),
                 correlationId
         );
