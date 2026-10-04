@@ -1,0 +1,77 @@
+server:
+  port: ${PORT_GATEWAY:8080}
+
+spring:
+  application:
+    name: api-gateway
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      timeout: 2000ms
+  cloud:
+    gateway:
+      routes:
+        - id: identity-service-auth
+          uri: http://${IDENTITY_SERVICE_HOST:identity-service}:${PORT_IDENTITY:8081}
+          predicates:
+            - Path=/api/v1/auth/**
+
+        - id: identity-service-users
+          uri: http://${IDENTITY_SERVICE_HOST:identity-service}:${PORT_IDENTITY:8081}
+          predicates:
+            - Path=/api/v1/users/**
+
+        - id: product-service-products
+          uri: http://${PRODUCT_SERVICE_HOST:product-service}:${PORT_PRODUCT:8082}
+          predicates:
+            - Path=/api/v1/products/**
+
+        - id: product-service-categories
+          uri: http://${PRODUCT_SERVICE_HOST:product-service}:${PORT_PRODUCT:8082}
+          predicates:
+            - Path=/api/v1/categories/**
+
+        - id: inventory-service-inventory
+          uri: http://${INVENTORY_SERVICE_HOST:inventory-service}:${PORT_INVENTORY:8083}
+          predicates:
+            - Path=/api/v1/inventory/**
+
+        - id: inventory-service-warehouses
+          uri: http://${INVENTORY_SERVICE_HOST:inventory-service}:${PORT_INVENTORY:8083}
+          predicates:
+            - Path=/api/v1/warehouses/**
+
+        - id: order-service
+          uri: http://${ORDER_SERVICE_HOST:order-service}:${PORT_ORDER:8084}
+          predicates:
+            - Path=/api/v1/orders/**
+
+        - id: notification-service
+          uri: http://${NOTIFICATION_SERVICE_HOST:notification-service}:${PORT_NOTIFICATION:8085}
+          predicates:
+            - Path=/api/v1/notifications/**
+
+        - id: analytics-service
+          uri: http://${ANALYTICS_SERVICE_HOST:analytics-service}:${PORT_ANALYTICS:8086}
+          predicates:
+            - Path=/api/v1/analytics/**
+
+        - id: ai-service
+          uri: http://${AI_SERVICE_HOST:ai-service}:${PORT_AI:8087}
+          predicates:
+            - Path=/api/v1/assistant/**
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics
+  endpoint:
+    health:
+      show-details: always
+      probes:
+        enabled: true
+
+jwt:
+  secret: ${JWT_SECRET:c2VjdXJlX2Zvb2Rfb3BlcmF0aW9uc19wbGF0Zm9ybV9qd3Rfc2VjcmV0X2tleV9mb3JfZGV2X2Vudmlyb25tZW50XzEyMzQ1Ng==}

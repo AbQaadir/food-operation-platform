@@ -1,0 +1,52 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  lint-frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Use Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+          cache-dependency-path: frontend/package.json
+      - name: Install dependencies
+        run: cd frontend && npm ci
+      - name: Run linter and typecheck
+        run: cd frontend && npm run lint
+      - name: Run unit tests
+        run: cd frontend && npm run test
+
+  test-java-services:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'maven'
+      - name: Test API Gateway
+        run: mvn clean test -f services/api-gateway/pom.xml
+      - name: Test Product Service
+        run: mvn clean test -f services/product-service/pom.xml
+
+  docker-build-check:
+    needs: [lint-frontend, test-java-services]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build API Gateway Image
+        run: docker build -t foodops/api-gateway:test services/api-gateway
+      - name: Build Product Service Image
+        run: docker build -t foodops/product-service:test services/product-service
+      - name: Build Frontend Image
+        run: docker build -t foodops/frontend:test frontend
