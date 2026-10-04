@@ -238,6 +238,24 @@ services:
       kafka:
         condition: service_healthy
 
+  ai-service:
+    build:
+      context: ./services/ai-service
+      dockerfile: Dockerfile
+    container_name: food-platform-ai-service
+    ports:
+      - "8087:8087"
+    environment:
+      PORT: 8087
+      LLM_PROVIDER: mock
+      INVENTORY_SERVICE_URL: http://inventory-service:8083
+      ORDER_SERVICE_URL: http://order-service:8084
+      PRODUCT_SERVICE_URL: http://product-service:8082
+    depends_on:
+      - inventory-service
+      - order-service
+      - product-service
+
   frontend:
     build:
       context: ./frontend
