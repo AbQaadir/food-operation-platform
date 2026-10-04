@@ -37,6 +37,16 @@ public class GlobalExceptionHandler {
         return buildProblemDetail(HttpStatus.BAD_REQUEST, "Validation Error", detail, "validation-error", request);
     }
 
+    @ExceptionHandler(org.springframework.web.bind.MissingRequestHeaderException.class)
+    public ProblemDetail handleMissingHeader(org.springframework.web.bind.MissingRequestHeaderException ex, WebRequest request) {
+        return buildProblemDetail(HttpStatus.BAD_REQUEST, "Missing Required Header", ex.getMessage(), "missing-header", request);
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ProblemDetail handleIllegalArgument(IllegalArgumentException ex, WebRequest request) {
+        return buildProblemDetail(HttpStatus.BAD_REQUEST, "Bad Request", ex.getMessage(), "bad-request", request);
+    }
+
     @ExceptionHandler(Exception.class)
     public ProblemDetail handleGeneric(Exception ex, WebRequest request) {
         log.error("Unhandled exception in order-service", ex);
