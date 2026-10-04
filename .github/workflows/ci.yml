@@ -74,12 +74,8 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
           cache: 'maven'
-      - name: Test API Gateway
-        run: mvn clean test -f services/api-gateway/pom.xml
-      - name: Test Identity Service
-        run: mvn clean test -f services/identity-service/pom.xml
-      - name: Test Product Service
-        run: mvn clean test -f services/product-service/pom.xml
+      - name: Run unit & integration tests on all Java microservices
+        run: mvn clean test -B
 
   docker-build-and-security-scan:
     needs: [lint-and-test-frontend, test-node-services, test-java-services, test-python-service]
@@ -88,6 +84,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+
       - name: Build API Gateway Image
         run: docker build -t foodops/api-gateway:test services/api-gateway
       - name: Build Product Service Image

@@ -1,9 +1,6 @@
 name: AWS Cloud Deployment
 
 on:
-  push:
-    branches: [ main ]
-    tags: [ 'v*' ]
   workflow_dispatch:
     inputs:
       environment:
@@ -14,6 +11,8 @@ on:
         options:
           - dev
           - prod
+  push:
+    tags: [ 'v*' ]
 
 permissions:
   id-token: write   # Required for AWS OIDC role assumption
@@ -22,7 +21,7 @@ permissions:
 jobs:
   deploy-dev:
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' || github.event.inputs.environment == 'dev'
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
     steps:
       - uses: actions/checkout@v4
 

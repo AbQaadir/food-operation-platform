@@ -1,0 +1,9 @@
+node_modules
+dist
+target
+.git
+.idea
+*.log
+.env
+.venv
+__pycache__
