@@ -107,6 +107,8 @@ services:
       PORT_GATEWAY: 8080
       REDIS_HOST: redis
       REDIS_PORT: 6379
+      IDENTITY_SERVICE_HOST: identity-service
+      PORT_IDENTITY: 8081
       PRODUCT_SERVICE_HOST: product-service
       PORT_PRODUCT: 8082
       JWT_SECRET: ${JWT_SECRET:-c2VjdXJlX2Zvb2Rfb3BlcmF0aW9uc19wbGF0Zm9ybV9qd3Rfc2VjcmV0X2tleV9mb3JfZGV2X2Vudmlyb25tZW50XzEyMzQ1Ng==}
@@ -115,6 +117,26 @@ services:
         condition: service_healthy
       product-service:
         condition: service_started
+      identity-service:
+        condition: service_started
+
+  identity-service:
+    build:
+      context: ./services/identity-service
+      dockerfile: Dockerfile
+    container_name: food-platform-identity-service
+    ports:
+      - "8081:8081"
+    environment:
+      PORT_IDENTITY: 8081
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      JWT_SECRET: ${JWT_SECRET:-c2VjdXJlX2Zvb2Rfb3BlcmF0aW9uc19wbGF0Zm9ybV9qd3Rfc2VjcmV0X2tleV9mb3JfZGV2X2Vudmlyb25tZW50XzEyMzQ1Ng==}
+    depends_on:
+      postgres:
+        condition: service_healthy
 
   product-service:
     build:
