@@ -86,4 +86,25 @@ test.describe('API Gateway & Distributed Services E2E API Validation', () => {
     expect(bodyText).toContain('event: token');
     expect(bodyText).toContain('event: done');
   });
+
+  test('Analytics Service routes and serves realtime summary via API Gateway', async ({ request }) => {
+    const loginRes = await request.post(`${GATEWAY_URL}/api/v1/auth/login`, {
+      data: {
+        email: 'customer@foodplatform.com',
+        password: 'Customer123!',
+      },
+    });
+    expect(loginRes.status()).toBe(200);
+    const { accessToken } = await loginRes.json();
+
+    const res = await request.get(`${GATEWAY_URL}/api/v1/analytics/realtime-summary`, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+    expect(res.status()).toBe(200);
+    const data = await res.json();
+    expect(data.today).toBeDefined();
+    expect(data.sevenDayAverageRevenue).toBeGreaterThanOrEqual(0);
+  });
 });

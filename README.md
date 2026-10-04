@@ -126,10 +126,20 @@ flowchart TD
 
 4. **Run tests across all modules:**
    ```bash
-   make test
+   make test     # Unit and integration tests across all 8 services
+   make lint     # TypeScript and lint checks
+   make e2e      # 9 Playwright end-to-end tests in headless Chromium
+   make load     # k6 concurrent load test suite against API Gateway
    ```
 
-5. **Stop platform:**
+5. **Cloud Deployment (Terraform IaC):**
+   ```bash
+   make tf-plan   # Generate Terraform plan for AWS dev environment
+   make tf-apply  # Apply cloud infrastructure (ECS Fargate, RDS, MSK, ALB)
+   ```
+   For detailed multi-region runbooks and failover procedures, see [Operations Runbook](docs/runbook.md).
+
+6. **Stop platform:**
    ```bash
    make down
    ```
@@ -149,5 +159,13 @@ flowchart TD
 
 ## 5. Architectural Decision Records (ADRs)
 
-- [ADR-001: Microservices Architecture](docs/adr/001-microservices-architecture.md)
-- [ADR-002: Apache Kafka as Asynchronous Event Backbone](docs/adr/002-apache-kafka-for-event-backbone.md)
+- [ADR-001: Microservices Architecture & Database-per-Service Isolation](docs/adr/001-microservices-architecture.md)
+- [ADR-002: Apache Kafka KRaft as Distributed Event Backbone](docs/adr/002-apache-kafka-for-event-backbone.md)
+- [ADR-003: Concurrency Control and Conditional Updates in Inventory Service](docs/adr/003-concurrency-control-inventory.md)
+- [ADR-004: Transactional Outbox Pattern and Saga Choreography](docs/adr/004-transactional-outbox-and-choreography.md)
+- [ADR-005: Notification Service Architecture and Server-Sent Events (SSE)](docs/adr/005-notification-service-sse.md)
+- [ADR-006: AI Operations Assistant Tool-Calling and SSE Streaming](docs/adr/006-ai-assistant-tool-calling-streaming.md)
+- [ADR-007: Observability Strategy (Prometheus, Grafana, OpenTelemetry)](docs/adr/007-observability-prometheus-grafana-opentelemetry.md)
+- [ADR-008: AWS Cloud Deployment Topology & Amazon MSK Migration Path](docs/adr/008-aws-deployment-topology-and-msk-migration.md)
+- [ADR-009: Real-time Analytics Event Aggregation & Kubernetes Orchestration](docs/adr/009-analytics-service-and-kubernetes-orchestration.md)
+

@@ -239,6 +239,27 @@ services:
       kafka:
         condition: service_healthy
 
+  analytics-service:
+    build:
+      context: ./services/analytics-service
+      dockerfile: Dockerfile
+    container_name: food-platform-analytics-service
+    ports:
+      - "8086:8086"
+    environment:
+      PORT_ANALYTICS: 8086
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: analytics_db
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+
   ai-service:
     build:
       context: ./services/ai-service

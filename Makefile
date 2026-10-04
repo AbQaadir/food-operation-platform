@@ -36,6 +36,8 @@ build:
 	JAVA_HOME=$(JAVA_HOME) mvn clean package -DskipTests -f services/order-service/pom.xml
 	@echo "Building Notification Service..."
 	cd services/notification-service && npm run build
+	@echo "Building Analytics Service..."
+	cd services/analytics-service && npm run build
 	@echo "Building AI Service..."
 	cd services/ai-service && pip install -r requirements.txt || true
 	@echo "Building Frontend..."
@@ -54,6 +56,8 @@ test:
 	JAVA_HOME=$(JAVA_HOME) mvn test -f services/order-service/pom.xml
 	@echo "Testing Notification Service..."
 	cd services/notification-service && npm run test
+	@echo "Testing Analytics Service..."
+	cd services/analytics-service && npm run test
 	@echo "Testing AI Service..."
 	docker exec food-platform-ai-service pytest tests/ || true
 	@echo "Testing Frontend..."

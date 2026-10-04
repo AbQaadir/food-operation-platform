@@ -309,3 +309,14 @@ export const aiApi = {
     }
   },
 };
+
+export const analyticsApi = {
+  getDailyKpis: async (limit: number = 30) => {
+    return apiFetch<{ content: any[]; totalElements: number; limit: number }>(`/api/v1/analytics/daily-kpis?limit=${limit}`);
+  },
+  getRealtimeSummary: async () => {
+    return apiFetch<any>('/api/v1/analytics/realtime-summary');
+  },
+};
+
+
