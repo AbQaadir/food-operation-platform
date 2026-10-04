@@ -85,9 +85,11 @@ export interface Order {
 export interface NotificationItem {
   id: string;
   userId?: string;
-  eventType: string;
+  eventType?: string;
+  type?: string;
   title: string;
-  message: string;
+  message?: string;
+  body?: string;
   read: boolean;
   createdAt: string;
 }
@@ -95,6 +97,20 @@ export interface NotificationItem {
 export interface UnreadCountResponse {
   unreadCount: number;
 }
+
+export const authApi = {
+  login: (email: string, password: string) =>
+    apiFetch<{ accessToken: string; refreshToken: string; expiresIn: number; user: any }>('/api/v1/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
+    }),
+  register: (data: { email: string; password: string; fullName: string }) =>
+    apiFetch<{ accessToken: string; refreshToken: string; user: any }>('/api/v1/auth/register', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  getMe: () => apiFetch<any>('/api/v1/users/me'),
+};
 
 export async function apiFetch<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const token = localStorage.getItem('accessToken');

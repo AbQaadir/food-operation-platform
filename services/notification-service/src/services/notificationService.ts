@@ -42,20 +42,33 @@ export class NotificationService {
     return notification;
   }
 
-  static async getNotifications(userId: string, page = 0, size = 20): Promise<{ content: Notification[]; page: number; size: number; totalElements: number; totalPages: number }> {
+  static async getNotifications(
+    userId: string,
+    page = 0,
+    size = 20,
+    unreadOnly = false
+  ): Promise<{ content: Notification[]; page: number; size: number; totalElements: number; totalPages: number }> {
     const offset = page * size;
-    const countResult = await pool.query('SELECT COUNT(*) FROM notifications WHERE user_id = $1', [userId]);
+    const countQuery = unreadOnly
+      ? 'SELECT COUNT(*) FROM notifications WHERE user_id = $1 AND read = FALSE'
+      : 'SELECT COUNT(*) FROM notifications WHERE user_id = $1';
+    const countResult = await pool.query(countQuery, [userId]);
     const totalElements = parseInt(countResult.rows[0].count, 10);
     const totalPages = Math.ceil(totalElements / size);
 
-    const rowsResult = await pool.query(
-      `SELECT id, user_id as "userId", type, title, body, read, created_at as "createdAt"
-       FROM notifications
-       WHERE user_id = $1
-       ORDER BY created_at DESC
-       LIMIT $2 OFFSET $3`,
-      [userId, size, offset]
-    );
+    const dataQuery = unreadOnly
+      ? `SELECT id, user_id as "userId", type, title, body, read, created_at as "createdAt"
+         FROM notifications
+         WHERE user_id = $1 AND read = FALSE
+         ORDER BY created_at DESC
+         LIMIT $2 OFFSET $3`
+      : `SELECT id, user_id as "userId", type, title, body, read, created_at as "createdAt"
+         FROM notifications
+         WHERE user_id = $1
+         ORDER BY created_at DESC
+         LIMIT $2 OFFSET $3`;
+
+    const rowsResult = await pool.query(dataQuery, [userId, size, offset]);
 
     return {
       content: rowsResult.rows,
@@ -86,6 +99,20 @@ export class NotificationService {
       return true;
     }
     return false;
+  }
+
+  static async markAllAsRead(userId: string): Promise<number> {
+    const result = await pool.query(
+      'UPDATE notifications SET read = TRUE WHERE user_id = $1 AND read = FALSE RETURNING id',
+      [userId]
+    );
+    const count = result.rowCount || 0;
+    try {
+      await redis.set(`${this.UNREAD_KEY_PREFIX}${userId}`, 0);
+    } catch (err: any) {
+      logger.warn(`Redis set error: ${err.message}`);
+    }
+    return count;
   }
 
   static async getUnreadCount(userId: string): Promise<number> {

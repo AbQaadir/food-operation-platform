@@ -1,7 +1,7 @@
-.PHONY: up down build test lint e2e load seed tf-plan tf-apply help
+.PHONY: up down build test lint e2e load seed tf-plan tf-apply tf-destroy help
 
 SHELL := /bin/bash
-JAVA_HOME ?= /opt/homebrew/opt/openjdk@21
+JAVA_HOME ?= /opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home
 export JAVA_HOME
 
 help:
@@ -16,6 +16,7 @@ help:
 	@echo "  make seed      - Populate catalog with sample and scale data"
 	@echo "  make tf-plan   - Run Terraform plan for infrastructure"
 	@echo "  make tf-apply  - Run Terraform apply for infrastructure"
+	@echo "  make tf-destroy- Tear down Terraform demo infrastructure"
 
 up:
 	docker compose up -d --build
@@ -59,7 +60,11 @@ test:
 	@echo "Testing Analytics Service..."
 	cd services/analytics-service && npm run test
 	@echo "Testing AI Service..."
-	docker exec food-platform-ai-service pytest tests/ || true
+	@if [ -f "services/ai-service/.venv/bin/pytest" ]; then \
+		PYTHONPATH=services/ai-service services/ai-service/.venv/bin/pytest services/ai-service/tests/; \
+	elif docker ps --format '{{.Names}}' | grep -q food-platform-ai-service; then \
+		docker exec food-platform-ai-service pytest tests/; \
+	fi
 	@echo "Testing Frontend..."
 	cd frontend && npm run test
 
@@ -95,4 +100,11 @@ tf-apply:
 		cd infrastructure/terraform/environments/dev && terraform apply -auto-approve; \
 	else \
 		docker run --rm -v "$$(pwd):/workspace" -w /workspace/infrastructure/terraform/environments/dev hashicorp/terraform:latest apply -auto-approve; \
+	fi
+
+tf-destroy:
+	@if command -v terraform &> /dev/null; then \
+		cd infrastructure/terraform/environments/dev && terraform destroy -auto-approve; \
+	else \
+		docker run --rm -v "$$(pwd):/workspace" -w /workspace/infrastructure/terraform/environments/dev hashicorp/terraform:latest destroy -auto-approve; \
 	fi

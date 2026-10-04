@@ -12,13 +12,14 @@ function getUserId(req: Request): string {
   return headerId || DEFAULT_USER_ID;
 }
 
-// GET /api/v1/notifications
+// GET /api/v1/notifications (supports ?unread=true & pagination)
 router.get('/', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const userId = getUserId(req);
     const page = parseInt(req.query.page as string || '0', 10);
     const size = parseInt(req.query.size as string || '20', 10);
-    const result = await NotificationService.getNotifications(userId, page, size);
+    const unreadOnly = req.query.unread === 'true';
+    const result = await NotificationService.getNotifications(userId, page, size, unreadOnly);
     res.json(result);
   } catch (err) {
     next(err);
@@ -36,8 +37,8 @@ router.get('/unread-count', async (req: Request, res: Response, next: NextFuncti
   }
 });
 
-// PATCH /api/v1/notifications/:id/read
-router.patch('/:id/read', async (req: Request, res: Response, next: NextFunction) => {
+// Mark single notification as read: supports both POST /:id/read and PATCH /:id/read
+const markReadHandler = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
     const userId = getUserId(req);
@@ -54,7 +55,24 @@ router.patch('/:id/read', async (req: Request, res: Response, next: NextFunction
   } catch (err) {
     next(err);
   }
-});
+};
+
+router.post('/:id/read', markReadHandler);
+router.patch('/:id/read', markReadHandler);
+
+// Mark all notifications as read: supports POST /read-all and POST /mark-read
+const markAllReadHandler = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const userId = getUserId(req);
+    const count = await NotificationService.markAllAsRead(userId);
+    res.json({ message: 'All notifications marked as read', updatedCount: count });
+  } catch (err) {
+    next(err);
+  }
+};
+
+router.post('/read-all', markAllReadHandler);
+router.post('/mark-read', markAllReadHandler);
 
 // GET /api/v1/notifications/stream (Server-Sent Events)
 router.get('/stream', (req: Request, res: Response) => {

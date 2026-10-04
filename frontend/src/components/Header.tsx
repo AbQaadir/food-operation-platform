@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Utensils, LayoutDashboard, Package, Warehouse, ShoppingCart, Bot } from 'lucide-react';
+import { Utensils, LayoutDashboard, Package, Warehouse, ShoppingCart, Bot, Users as UsersIcon, Bell } from 'lucide-react';
 import { NotificationsPopover } from './NotificationsPopover';
 
 export const Header: React.FC = () => {
@@ -11,7 +11,9 @@ export const Header: React.FC = () => {
     { label: 'Products', path: '/products', icon: Package },
     { label: 'Inventory', path: '/inventory', icon: Warehouse },
     { label: 'Orders', path: '/orders', icon: ShoppingCart },
+    { label: 'Notifications', path: '/notifications', icon: Bell },
     { label: 'AI Assistant', path: '/assistant', icon: Bot },
+    { label: 'Users', path: '/users', icon: UsersIcon },
   ];
 
   return (

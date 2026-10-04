@@ -32,3 +32,16 @@ def test_chat_stream():
     text = response.text
     assert "event: token" in text
     assert "event: done" in text
+
+def test_assistant_chat_json():
+    payload = {
+        "message": "Which warehouse has the most low-stock items?",
+        "conversationId": "test-conv-123"
+    }
+    response = client.post("/api/v1/assistant/chat", json=payload)
+    assert response.status_code == 200
+    data = response.json()
+    assert "answer" in data
+    assert "toolCalls" in data
+    assert data["conversationId"] == "test-conv-123"
+

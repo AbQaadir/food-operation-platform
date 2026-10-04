@@ -131,9 +131,9 @@ export const NotificationsPopover: React.FC = () => {
                 >
                   <div className="flex items-center justify-between mb-1">
                     <span className="font-semibold text-xs text-slate-800">{item.title}</span>
-                    {getEventBadge(item.eventType)}
+                    {getEventBadge(item.eventType || item.type || 'DEFAULT')}
                   </div>
-                  <p className="text-xs text-slate-600 line-clamp-2 mt-1">{item.message}</p>
+                  <p className="text-xs text-slate-600 line-clamp-2 mt-1">{item.message || item.body}</p>
                   <div className="flex items-center text-[10px] text-slate-400 mt-2">
                     <Clock className="w-3 h-3 mr-1" />
                     <span>{new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>

@@ -18,11 +18,39 @@ analyticsRouter.get('/daily-kpis', async (req: Request, res: Response, next: Nex
   }
 });
 
-// GET /api/v1/analytics/realtime-summary
-analyticsRouter.get('/realtime-summary', async (req: Request, res: Response, next: NextFunction) => {
+// GET /api/v1/analytics/realtime-summary & /api/v1/analytics/summary
+const summaryHandler = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const summary = await analyticsService.getRealtimeSummary();
     res.json(summary);
+  } catch (err) {
+    next(err);
+  }
+};
+analyticsRouter.get('/realtime-summary', summaryHandler);
+analyticsRouter.get('/summary', summaryHandler);
+
+// GET /api/v1/analytics/orders-by-day
+analyticsRouter.get('/orders-by-day', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const limit = parseInt(req.query.limit as string, 10) || 30;
+    const kpis = await analyticsService.getDailyKpis(limit);
+    const ordersByDay = kpis.map(k => ({
+      date: k.date,
+      orders: k.totalOrders,
+      revenue: k.totalRevenue,
+    }));
+    res.json({ content: ordersByDay, totalElements: ordersByDay.length });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /api/v1/analytics/top-products
+analyticsRouter.get('/top-products', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const summary = await analyticsService.getRealtimeSummary();
+    res.json({ content: summary.topProducts || [] });
   } catch (err) {
     next(err);
   }

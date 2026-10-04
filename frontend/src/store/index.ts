@@ -1,10 +1,18 @@
 import { configureStore } from '@reduxjs/toolkit';
 import { TypedUseSelectorHook, useDispatch, useSelector } from 'react-redux';
 import authReducer from './authSlice';
+import uiReducer from './uiSlice';
+import filterReducer from './filterSlice';
+import notificationReducer from './notificationSlice';
+import cartReducer from './cartSlice';
 
 export const store = configureStore({
   reducer: {
     auth: authReducer,
+    ui: uiReducer,
+    filters: filterReducer,
+    notifications: notificationReducer,
+    cart: cartReducer,
   },
 });
 

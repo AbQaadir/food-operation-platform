@@ -15,7 +15,7 @@ export const kafka = new Kafka({
 
 const consumer = kafka.consumer({ groupId: 'notification-service-group' });
 
-const TOPICS = ['order.confirmed', 'order.cancelled', 'inventory.low-stock'];
+const TOPICS = ['order.confirmed', 'order.rejected', 'order.cancelled', 'inventory.low-stock'];
 
 // Seed demo user ids (identity-service DataInitializer uses fixed UUIDs in dev)
 const DEFAULT_LOW_STOCK_RECIPIENTS = [
@@ -87,6 +87,14 @@ async function processEvent(topic: string, payload: any): Promise<void> {
       'ORDER_CONFIRMED',
       'Order Confirmed!',
       `Your order #${payload.orderId} has been confirmed and inventory allocated successfully.`
+    );
+  } else if (topic === 'order.rejected') {
+    if (!payload.customerId) throw new Error('order.rejected payload is missing customerId');
+    await NotificationService.createNotification(
+      payload.customerId,
+      'ORDER_REJECTED',
+      'Order Rejected',
+      `Your order #${payload.orderId} could not be confirmed. Reason: ${payload.reason || 'Insufficient stock'}.`
     );
   } else if (topic === 'order.cancelled') {
     if (!payload.customerId) throw new Error('order.cancelled payload is missing customerId');

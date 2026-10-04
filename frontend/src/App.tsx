@@ -9,6 +9,9 @@ import { Products } from './pages/Products';
 import { Inventory } from './pages/Inventory';
 import { Orders } from './pages/Orders';
 import { AiAssistant } from './pages/AiAssistant';
+import { Login } from './pages/Login';
+import { Notifications } from './pages/Notifications';
+import { Users } from './pages/Users';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -29,10 +32,13 @@ export const App: React.FC = () => {
             <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
               <Routes>
                 <Route path="/" element={<Dashboard />} />
+                <Route path="/login" element={<Login />} />
                 <Route path="/products" element={<Products />} />
                 <Route path="/inventory" element={<Inventory />} />
                 <Route path="/orders" element={<Orders />} />
+                <Route path="/notifications" element={<Notifications />} />
                 <Route path="/assistant" element={<AiAssistant />} />
+                <Route path="/users" element={<Users />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
             </main>
