@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { productApi, orderApi, Product, Category } from '../api/client';
+import { useAppSelector } from '../store';
 import {
   Search,
   AlertCircle,
@@ -15,6 +16,7 @@ import {
 } from 'lucide-react';
 
 export const Products: React.FC = () => {
+  const currentUser = useAppSelector((state) => state.auth.user);
   const [searchInput, setSearchInput] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('');
@@ -58,7 +60,7 @@ export const Products: React.FC = () => {
       if (!quickOrderProduct) throw new Error('No product selected');
       return orderApi.createOrder(
         {
-          customerId: 'c0000000-0000-0000-0000-000000000001',
+          customerId: currentUser?.id || '00000000-0000-0000-0000-000000000004',
           items: [{ productId: quickOrderProduct.id, qty: orderQuantity }],
         },
         idempotencyKey

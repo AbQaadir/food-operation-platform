@@ -12,8 +12,11 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { productApi, inventoryApi, orderApi, notificationApi } from '../api/client';
+import { useAppSelector } from '../store';
 
 export const Dashboard: React.FC = () => {
+  const isAuthenticated = useAppSelector((state) => state.auth.isAuthenticated);
+
   const { data: productsData } = useQuery({
     queryKey: ['dashboard-products-count'],
     queryFn: () => productApi.getProducts({ size: 1 }),
@@ -22,16 +25,19 @@ export const Dashboard: React.FC = () => {
   const { data: warehouses = [] } = useQuery({
     queryKey: ['dashboard-warehouses'],
     queryFn: inventoryApi.getWarehouses,
+    enabled: isAuthenticated,
   });
 
   const { data: ordersData } = useQuery({
     queryKey: ['dashboard-orders-count'],
     queryFn: () => orderApi.getOrders({ size: 1 }),
+    enabled: isAuthenticated,
   });
 
   const { data: unreadData } = useQuery({
     queryKey: ['dashboard-unread'],
     queryFn: notificationApi.getUnreadCount,
+    enabled: isAuthenticated,
   });
 
   const totalProducts = productsData?.totalElements ?? 5200;

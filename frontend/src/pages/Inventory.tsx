@@ -11,7 +11,7 @@ import {
 import { inventoryApi, productApi, Warehouse, StockLevel, Product } from '../api/client';
 
 export const Inventory: React.FC = () => {
-  const [selectedProductId, setSelectedProductId] = useState<string>('a68d0d41-c837-4da4-8c66-e64f5ea6e761');
+  const [selectedProductId, setSelectedProductId] = useState<string>('');
   const [isAdjustModalOpen, setIsAdjustModalOpen] = useState(false);
   const [adjustWarehouseId, setAdjustWarehouseId] = useState<string>('');
   const [adjustDelta, setAdjustDelta] = useState<number>(50);
@@ -29,6 +29,20 @@ export const Inventory: React.FC = () => {
     queryKey: ['products-for-inventory'],
     queryFn: () => productApi.getProducts({ size: 100 }),
   });
+
+  // Automatically default to the first product once products load
+  React.useEffect(() => {
+    if (!selectedProductId && productsData?.content && productsData.content.length > 0) {
+      setSelectedProductId(productsData.content[0].id);
+    }
+  }, [productsData, selectedProductId]);
+
+  // Automatically default warehouse when warehouses load
+  React.useEffect(() => {
+    if (!adjustWarehouseId && warehouses.length > 0) {
+      setAdjustWarehouseId(warehouses[0].id);
+    }
+  }, [warehouses, adjustWarehouseId]);
 
   const { data: stockLevels = [], isLoading: isLoadingStock, refetch: refetchStock, isFetching: isFetchingStock } = useQuery({
     queryKey: ['inventory', selectedProductId],

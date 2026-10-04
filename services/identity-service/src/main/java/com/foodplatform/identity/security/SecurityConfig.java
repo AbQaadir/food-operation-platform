@@ -28,11 +28,18 @@ public class SecurityConfig {
         return config.getAuthenticationManager();
     }
 
+    private final GatewayHeaderAuthenticationFilter gatewayHeaderFilter;
+
+    public SecurityConfig(GatewayHeaderAuthenticationFilter gatewayHeaderFilter) {
+        this.gatewayHeaderFilter = gatewayHeaderFilter;
+    }
+
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .addFilterBefore(gatewayHeaderFilter, org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter.class)
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
                                 "/api/v1/auth/**",

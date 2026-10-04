@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
 Seed script for Enterprise Food Operations Platform.
-Generates >= 5,000 realistic food products and categories in product_db.
+Generates >= 5,000 realistic food products and categories in product_db,
+and seeds multi-warehouse fulfillment hubs and stock levels in inventory_db.
 """
 
 import random
@@ -41,22 +42,28 @@ NOUNS = [
 
 UNITS = ["KG", "L", "PACK", "BOX", "BOTTLE", "CAN", "UNIT"]
 
-def run_psql(sql: str):
+WAREHOUSES = [
+    ("WH-EAST", "East Coast Logistics Hub", "New York, NY"),
+    ("WH-WEST", "West Coast Distribution Hub", "Los Angeles, CA"),
+    ("WH-CENTRAL", "Midwest Central Fulfillment Hub", "Chicago, IL"),
+    ("WH-SOUTH", "Southern Cold Chain Hub", "Dallas, TX")
+]
+
+def run_psql(db: str, sql: str):
     cmd = [
         "docker", "exec", "-i", "food-platform-postgres",
-        "psql", "-U", "postgres", "-d", "product_db"
+        "psql", "-U", "postgres", "-d", db
     ]
     res = subprocess.run(cmd, input=sql, text=True, capture_output=True)
     if res.returncode != 0:
-        print(f"Error running SQL: {res.stderr}", file=sys.stderr)
+        print(f"Error running SQL on {db}: {res.stderr}", file=sys.stderr)
         sys.exit(res.returncode)
     return res.stdout
 
-def main():
-    print("Starting product catalog seed (>= 5,000 items)...")
+def seed_products():
+    print("Checking product catalog seed (>= 5,000 items)...")
     
-    # Check if already seeded
-    count_check = run_psql("SELECT COUNT(*) FROM products;")
+    count_check = run_psql("product_db", "SELECT COUNT(*) FROM products;")
     existing_count = 0
     for line in count_check.strip().split("\n"):
         line = line.strip()
@@ -65,7 +72,7 @@ def main():
             break
             
     if existing_count >= 5000:
-        print(f"Catalog already contains {existing_count} products. Skipping seed.")
+        print(f"Catalog already contains {existing_count} products. Skipping product generation.")
         return
 
     # Seed categories
@@ -82,16 +89,15 @@ def main():
             f"RETURNING id;"
         )
     cat_sql_lines.append("COMMIT;")
-    run_psql("\n".join(cat_sql_lines))
+    run_psql("product_db", "\n".join(cat_sql_lines))
     print(f"Seeded {len(CATEGORIES)} categories.")
 
     # Fetch actual category IDs from DB
-    cat_rows = run_psql("SELECT id FROM categories;").strip().split("\n")
+    cat_rows = run_psql("product_db", "SELECT id FROM categories;").strip().split("\n")
     valid_cat_ids = [line.strip() for line in cat_rows if len(line.strip()) == 36 and "-" in line.strip()]
     if not valid_cat_ids:
         valid_cat_ids = category_ids
 
-    # Generate 5,200 products in batches
     target_count = 5200
     batch_size = 500
     total_inserted = 0
@@ -122,12 +128,62 @@ def main():
                 f"ON CONFLICT (sku) DO NOTHING;"
             )
         sql_lines.append("COMMIT;")
-        run_psql("\n".join(sql_lines))
+        run_psql("product_db", "\n".join(sql_lines))
         total_inserted += current_batch
         print(f"  Inserted batch: {total_inserted}/{target_count} products")
 
-    final_count = run_psql("SELECT COUNT(*) FROM products;")
-    print(f"Seed complete! Current product count:\n{final_count.strip()}")
+    final_count = run_psql("product_db", "SELECT COUNT(*) FROM products;")
+    print(f"Product seed complete! Current count: {final_count.strip()}")
+
+def seed_warehouses_and_inventory():
+    print("Checking warehouses in inventory_db...")
+    wh_sql_lines = ["BEGIN;"]
+    for code, name, location in WAREHOUSES:
+        wh_id = str(uuid.uuid4())
+        wh_sql_lines.append(
+            f"INSERT INTO warehouses (id, code, name, location, created_at) "
+            f"VALUES ('{wh_id}', '{code}', '{name}', '{location}', NOW()) "
+            f"ON CONFLICT (code) DO NOTHING;"
+        )
+    wh_sql_lines.append("COMMIT;")
+    run_psql("inventory_db", "\n".join(wh_sql_lines))
+
+    # Fetch all warehouse IDs
+    wh_out = run_psql("inventory_db", "SELECT id, code FROM warehouses;").strip().split("\n")
+    warehouse_map = {}
+    for line in wh_out:
+        parts = [p.strip() for p in line.split("|")]
+        if len(parts) == 2 and len(parts[0]) == 36 and "-" in parts[0]:
+            warehouse_map[parts[1]] = parts[0]
+
+    print(f"Fulfillment warehouses registered: {list(warehouse_map.keys())}")
+
+    # Fetch top 100 products from product_db to ensure inventory is available
+    prod_out = run_psql("product_db", "SELECT id FROM products ORDER BY created_at ASC LIMIT 100;").strip().split("\n")
+    product_ids = [line.strip() for line in prod_out if len(line.strip()) == 36 and "-" in line.strip()]
+
+    print(f"Seeding stock allocations for {len(product_ids)} products across {len(warehouse_map)} warehouses...")
+    stock_sql_lines = ["BEGIN;"]
+    for pid in product_ids:
+        for wh_code, wh_id in warehouse_map.items():
+            stock_id = str(uuid.uuid4())
+            on_hand = random.randint(150, 450)
+            stock_sql_lines.append(
+                f"INSERT INTO stock_levels (id, warehouse_id, product_id, on_hand, reserved, low_stock_threshold, version, created_at, updated_at) "
+                f"VALUES ('{stock_id}', '{wh_id}', '{pid}', {on_hand}, 0, 15, 0, NOW(), NOW()) "
+                f"ON CONFLICT (warehouse_id, product_id) DO UPDATE SET on_hand = EXCLUDED.on_hand WHERE stock_levels.on_hand = 0;"
+            )
+    stock_sql_lines.append("COMMIT;")
+    run_psql("inventory_db", "\n".join(stock_sql_lines))
+
+    stock_count = run_psql("inventory_db", "SELECT COUNT(*) FROM stock_levels;").strip().split("\n")
+    print(f"Inventory seed complete! Total stock level entries: {stock_count[-1].strip()}")
+
+def main():
+    print("=== Enterprise Food Platform Seeder ===")
+    seed_products()
+    seed_warehouses_and_inventory()
+    print("=== Seeding Successfully Completed ===")
 
 if __name__ == "__main__":
     main()

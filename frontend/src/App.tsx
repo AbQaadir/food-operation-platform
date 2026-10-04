@@ -12,6 +12,7 @@ import { AiAssistant } from './pages/AiAssistant';
 import { Login } from './pages/Login';
 import { Notifications } from './pages/Notifications';
 import { Users } from './pages/Users';
+import { useAppSelector } from './store';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -21,6 +22,14 @@ const queryClient = new QueryClient({
     },
   },
 });
+
+const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const isAuthenticated = useAppSelector((state) => state.auth.isAuthenticated);
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+  return <>{children}</>;
+};
 
 export const App: React.FC = () => {
   return (
@@ -34,11 +43,46 @@ export const App: React.FC = () => {
                 <Route path="/" element={<Dashboard />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/products" element={<Products />} />
-                <Route path="/inventory" element={<Inventory />} />
-                <Route path="/orders" element={<Orders />} />
-                <Route path="/notifications" element={<Notifications />} />
-                <Route path="/assistant" element={<AiAssistant />} />
-                <Route path="/users" element={<Users />} />
+                <Route
+                  path="/inventory"
+                  element={
+                    <ProtectedRoute>
+                      <Inventory />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/orders"
+                  element={
+                    <ProtectedRoute>
+                      <Orders />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/notifications"
+                  element={
+                    <ProtectedRoute>
+                      <Notifications />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/assistant"
+                  element={
+                    <ProtectedRoute>
+                      <AiAssistant />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/users"
+                  element={
+                    <ProtectedRoute>
+                      <Users />
+                    </ProtectedRoute>
+                  }
+                />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
             </main>

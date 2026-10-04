@@ -67,11 +67,16 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
         }
 
         String authHeader = request.getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            return unauthorizedResponse(exchange, "Missing or invalid Authorization header");
+        String token = null;
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            token = authHeader.substring(7);
+        } else if (request.getQueryParams().getFirst("token") != null) {
+            token = request.getQueryParams().getFirst("token");
         }
 
-        String token = authHeader.substring(7);
+        if (token == null || token.isBlank()) {
+            return unauthorizedResponse(exchange, "Missing or invalid Authorization header");
+        }
         try {
             Claims claims = parseClaims(token);
             ServerHttpRequest mutated = enrichRequestWithClaims(request, claims);

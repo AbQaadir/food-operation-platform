@@ -15,24 +15,26 @@ import {
   Check
 } from 'lucide-react';
 import { orderApi, productApi, Order, Product } from '../api/client';
+import { useAppSelector } from '../store';
 
 export const Orders: React.FC = () => {
+  const currentUser = useAppSelector((state) => state.auth.user);
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [page, setPage] = useState(0);
   const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [selectedProductId, setSelectedProductId] = useState<string>('a68d0d41-c837-4da4-8c66-e64f5ea6e761');
+  const [selectedProductId, setSelectedProductId] = useState<string>('');
   const [orderQuantity, setOrderQuantity] = useState<number>(1);
-  const [customerId, setCustomerId] = useState<string>(() => {
-    try {
-      const saved = localStorage.getItem('user');
-      return saved ? JSON.parse(saved).id : '5fc0741f-9724-4446-8dcb-c7fac24a4c80';
-    } catch {
-      return '5fc0741f-9724-4446-8dcb-c7fac24a4c80';
-    }
-  });
+  const [customerId, setCustomerId] = useState<string>(() => currentUser?.id || '00000000-0000-0000-0000-000000000004');
   const [idempotencyKey, setIdempotencyKey] = useState<string>(() => crypto.randomUUID());
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  // Update customerId if currentUser loads later
+  React.useEffect(() => {
+    if (currentUser?.id) {
+      setCustomerId(currentUser.id);
+    }
+  }, [currentUser]);
 
   const queryClient = useQueryClient();
 
@@ -46,6 +48,13 @@ export const Orders: React.FC = () => {
     queryKey: ['products-for-orders'],
     queryFn: () => productApi.getProducts({ size: 50 }),
   });
+
+  // Automatically default to the first product once products load
+  React.useEffect(() => {
+    if (!selectedProductId && productsData?.content && productsData.content.length > 0) {
+      setSelectedProductId(productsData.content[0].id);
+    }
+  }, [productsData, selectedProductId]);
 
   const createOrderMutation = useMutation({
     mutationFn: async () => {
