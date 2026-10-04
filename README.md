@@ -168,4 +168,16 @@ flowchart TD
 - [ADR-007: Observability Strategy (Prometheus, Grafana, OpenTelemetry)](docs/adr/007-observability-prometheus-grafana-opentelemetry.md)
 - [ADR-008: AWS Cloud Deployment Topology & Amazon MSK Migration Path](docs/adr/008-aws-deployment-topology-and-msk-migration.md)
 - [ADR-009: Real-time Analytics Event Aggregation & Kubernetes Orchestration](docs/adr/009-analytics-service-and-kubernetes-orchestration.md)
+- [ADR-010: Redis Strategy for Caching, Distributed Idempotency, and Rate Limiting](docs/adr/010-redis-caching-idempotency-rate-limiting.md)
+
+---
+
+## 6. Architecture & Technical Documentation
+
+- [System Architecture & Service Boundaries](docs/architecture/overview.md)
+- [Event Catalogue & Lifecycle Sequence Diagrams](docs/architecture/event-catalogue.md)
+- [Database Indexing & SQL Optimization Report](docs/architecture/sql-optimization.md)
+- [Engineering Interview Notes (Tradeoffs, Failure Modes, 10x Scale)](docs/interview-notes.md)
+- [Operations Runbook & Failover Guide](docs/runbook.md)
+
 
