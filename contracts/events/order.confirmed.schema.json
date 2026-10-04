@@ -3,7 +3,15 @@
   "title": "OrderConfirmedEvent",
   "type": "object",
   "properties": {
+    "eventId": {
+      "type": "string",
+      "format": "uuid"
+    },
     "orderId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "customerId": {
       "type": "string",
       "format": "uuid"
     },
@@ -19,6 +27,7 @@
   },
   "required": [
     "orderId",
+    "customerId",
     "status"
   ]
 }

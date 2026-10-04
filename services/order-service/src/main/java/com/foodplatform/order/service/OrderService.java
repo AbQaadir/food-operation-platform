@@ -101,8 +101,10 @@ public class OrderService {
 
         Order saved = orderRepository.save(order);
 
-        // Record outbox event in same transaction
+        // Record outbox event in same transaction (outbox row id doubles as the event id)
+        UUID eventId = UUID.randomUUID();
         Map<String, Object> outboxPayload = Map.of(
+                "eventId", eventId.toString(),
                 "orderId", orderId.toString(),
                 "customerId", req.customerId().toString(),
                 "totalAmount", totalAmount,
@@ -113,7 +115,7 @@ public class OrderService {
         try {
             String payloadJson = objectMapper.writeValueAsString(outboxPayload);
             OutboxEvent outboxEvent = new OutboxEvent(
-                    UUID.randomUUID(),
+                    eventId,
                     "Order",
                     orderId.toString(),
                     "order.created",
@@ -141,14 +143,17 @@ public class OrderService {
         Order updated = orderRepository.save(order);
 
         // Record cancellation outbox event
+        UUID cancelEventId = UUID.randomUUID();
         try {
             String payload = objectMapper.writeValueAsString(Map.of(
+                    "eventId", cancelEventId.toString(),
                     "orderId", id.toString(),
+                    "customerId", order.getCustomerId().toString(),
                     "status", "CANCELLED",
                     "reason", reason,
                     "timestamp", java.time.Instant.now().toString()
             ));
-            outboxEventRepository.save(new OutboxEvent(UUID.randomUUID(), "Order", id.toString(), "order.cancelled", payload));
+            outboxEventRepository.save(new OutboxEvent(cancelEventId, "Order", id.toString(), "order.cancelled", payload));
         } catch (Exception e) {
             log.warn("Failed to create cancellation outbox event: {}", e.getMessage());
         }
@@ -165,12 +170,15 @@ public class OrderService {
                 log.info("Choreography: Order {} transitioned to CONFIRMED", orderId);
 
                 try {
+                    UUID eventId = UUID.randomUUID();
                     String payload = objectMapper.writeValueAsString(Map.of(
+                            "eventId", eventId.toString(),
                             "orderId", orderId.toString(),
+                            "customerId", order.getCustomerId().toString(),
                             "status", "CONFIRMED",
                             "timestamp", java.time.Instant.now().toString()
                     ));
-                    outboxEventRepository.save(new OutboxEvent(UUID.randomUUID(), "Order", orderId.toString(), "order.confirmed", payload));
+                    outboxEventRepository.save(new OutboxEvent(eventId, "Order", orderId.toString(), "order.confirmed", payload));
                 } catch (Exception e) {
                     log.warn("Failed to create confirmation outbox event: {}", e.getMessage());
                 }
@@ -187,13 +195,16 @@ public class OrderService {
                 log.info("Choreography: Order {} transitioned to CANCELLED (insufficient stock)", orderId);
 
                 try {
+                    UUID eventId = UUID.randomUUID();
                     String payload = objectMapper.writeValueAsString(Map.of(
+                            "eventId", eventId.toString(),
                             "orderId", orderId.toString(),
+                            "customerId", order.getCustomerId().toString(),
                             "status", "CANCELLED",
                             "reason", "INSUFFICIENT_STOCK: " + reason,
                             "timestamp", java.time.Instant.now().toString()
                     ));
-                    outboxEventRepository.save(new OutboxEvent(UUID.randomUUID(), "Order", orderId.toString(), "order.cancelled", payload));
+                    outboxEventRepository.save(new OutboxEvent(eventId, "Order", orderId.toString(), "order.cancelled", payload));
                 } catch (Exception e) {
                     log.warn("Failed to create rejection outbox event: {}", e.getMessage());
                 }

@@ -2,6 +2,7 @@ package com.foodplatform.order.service;
 
 import com.foodplatform.order.domain.OutboxEvent;
 import com.foodplatform.order.repository.OutboxEventRepository;
+import org.apache.kafka.clients.producer.ProducerRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,6 +12,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 @Service
@@ -35,7 +37,12 @@ public class OutboxPublisher {
         List<OutboxEvent> unprocessed = outboxEventRepository.findByProcessedAtIsNullOrderByCreatedAtAsc(PageRequest.of(0, 50));
         for (OutboxEvent event : unprocessed) {
             try {
-                kafkaTemplate.send(event.getType(), event.getAggregateId(), event.getPayload()).get();
+                ProducerRecord<String, Object> record =
+                        new ProducerRecord<>(event.getType(), event.getAggregateId(), event.getPayload());
+                record.headers().add("eventId", event.getId().toString().getBytes(StandardCharsets.UTF_8));
+                record.headers().add("correlationId", event.getId().toString().getBytes(StandardCharsets.UTF_8));
+                record.headers().add("producer", "order-service".getBytes(StandardCharsets.UTF_8));
+                kafkaTemplate.send(record).get();
                 event.markProcessed();
                 outboxEventRepository.save(event);
                 log.info("Published outbox event {} for {} to topic {}", event.getId(), event.getAggregateId(), event.getType());

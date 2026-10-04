@@ -3,6 +3,7 @@ import express from 'express';
 import request from 'supertest';
 import { router as notificationRouter } from './routes/notificationRoutes.js';
 import { NotificationService } from './services/notificationService.js';
+import { decodePayload } from './consumers/kafkaConsumer.js';
 
 describe('Notification Service Tests', () => {
   const app = express();
@@ -60,5 +61,16 @@ describe('Notification Service Tests', () => {
 
     expect(res.status).toBe(200);
     expect(res.body.read).toBe(true);
+  });
+
+  it('decodePayload handles double-encoded Kafka record values (spring-kafka JsonSerializer of a JSON string)', () => {
+    const payload = { eventId: 'evt-1', orderId: 'ord-1', customerId: 'cust-1', status: 'CONFIRMED' };
+    const doubleEncoded = JSON.stringify(JSON.stringify(payload));
+    expect(decodePayload(doubleEncoded)).toEqual(payload);
+  });
+
+  it('decodePayload handles single-encoded Kafka record values', () => {
+    const payload = { eventId: 'evt-2', orderId: 'ord-2', customerId: 'cust-2', status: 'CONFIRMED' };
+    expect(decodePayload(JSON.stringify(payload))).toEqual(payload);
   });
 });

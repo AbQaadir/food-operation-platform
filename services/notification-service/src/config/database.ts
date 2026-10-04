@@ -27,6 +27,12 @@ export async function initDatabase() {
       );
       CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id);
       CREATE INDEX IF NOT EXISTS idx_notifications_user_read ON notifications(user_id, read);
+
+      CREATE TABLE IF NOT EXISTS processed_events (
+        event_id VARCHAR(255) PRIMARY KEY,
+        topic VARCHAR(255) NOT NULL,
+        processed_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+      );
     `);
     logger.info('Notification database schema initialized successfully');
   } finally {

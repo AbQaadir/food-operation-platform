@@ -56,6 +56,25 @@ services:
       timeout: 10s
       retries: 5
 
+  # Pre-creates all topics with 3 partitions so consumers never race broker auto-creation
+  kafka-init:
+    image: apache/kafka:3.7.0
+    container_name: food-platform-kafka-init
+    depends_on:
+      kafka:
+        condition: service_healthy
+    entrypoint: ["/bin/bash", "-c"]
+    command:
+      - |
+        set -e
+        BOOTSTRAP=kafka:9092
+        for t in order.created order.confirmed order.rejected order.cancelled inventory.reserved inventory.rejected inventory.released inventory.low-stock product.updated; do
+          /opt/kafka/bin/kafka-topics.sh --bootstrap-server $$BOOTSTRAP --create --if-not-exists --topic "$$t" --partitions 3 --replication-factor 1 >/dev/null
+          /opt/kafka/bin/kafka-topics.sh --bootstrap-server $$BOOTSTRAP --create --if-not-exists --topic "$$t.dlq" --partitions 3 --replication-factor 1 >/dev/null
+        done
+        echo "Kafka topics initialized:"
+        /opt/kafka/bin/kafka-topics.sh --bootstrap-server $$BOOTSTRAP --list
+
   kafka-ui:
     image: provectuslabs/kafka-ui:latest
     container_name: food-platform-kafka-ui
@@ -112,6 +131,16 @@ services:
       PORT_IDENTITY: 8081
       PRODUCT_SERVICE_HOST: product-service
       PORT_PRODUCT: 8082
+      INVENTORY_SERVICE_HOST: inventory-service
+      PORT_INVENTORY: 8083
+      ORDER_SERVICE_HOST: order-service
+      PORT_ORDER: 8084
+      NOTIFICATION_SERVICE_HOST: notification-service
+      PORT_NOTIFICATION: 8085
+      ANALYTICS_SERVICE_HOST: analytics-service
+      PORT_ANALYTICS: 8086
+      AI_SERVICE_HOST: ai-service
+      PORT_AI: 8087
       JWT_SECRET: ${JWT_SECRET:-c2VjdXJlX2Zvb2Rfb3BlcmF0aW9uc19wbGF0Zm9ybV9qd3Rfc2VjcmV0X2tleV9mb3JfZGV2X2Vudmlyb25tZW50XzEyMzQ1Ng==}
     depends_on:
       redis:
@@ -182,6 +211,8 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
 
   order-service:
     build:
@@ -214,6 +245,8 @@ services:
         condition: service_started
       inventory-service:
         condition: service_started
+      kafka-init:
+        condition: service_completed_successfully
 
   notification-service:
     build:
@@ -238,6 +271,8 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
 
   analytics-service:
     build:
@@ -259,6 +294,8 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
 
   ai-service:
     build:
