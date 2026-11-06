@@ -1,0 +1,52 @@
+name: End-to-End Tests
+
+on:
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  playwright-e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Start Full Platform via Docker Compose
+        run: |
+          docker compose up -d --build
+          # Wait for services to report healthy
+          docker compose ps
+          sleep 30
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+          cache-dependency-path: tests/e2e/package.json
+
+      - name: Install Playwright & Dependencies
+        run: |
+          cd tests/e2e
+          npm ci
+          npx playwright install --with-deps chromium
+
+      - name: Run Playwright E2E Test Suite
+        run: |
+          cd tests/e2e
+          GATEWAY_URL=http://localhost:8080 npx playwright test
+
+      - name: Upload Playwright Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: tests/e2e/playwright-report/
+          retention-days: 7
+
+      - name: Teardown Compose Environment
+        if: always()
+        run: docker compose down -v
