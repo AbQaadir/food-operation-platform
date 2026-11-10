@@ -1,0 +1,35 @@
+# Food Operations Platform
+
+> Enterprise event-driven microservices food operations platform built with Java 21, Spring Boot 3, Spring Cloud Gateway, Apache Kafka KRaft, PostgreSQL 16, Redis 7, React 18, Redux Toolkit, Node.js 22, and FastAPI.
+
+## Core Documentation
+- [AGENTS.md](./AGENTS.md): Universal guide for AI coding agents with commands, service matrix, and boundaries
+- [CLAUDE.md](./CLAUDE.md): Claude Code specific commands and rules
+- [Architecture Overview](./docs/architecture/overview.md): C4 system context, container, and component models
+- [Event Catalogue](./docs/architecture/event-catalogue.md): Kafka topics, schemas, and saga choreography flows
+- [SQL Optimization](./docs/architecture/sql-optimization.md): PostgreSQL 16 trigram search benchmarks and query plans
+- [Operations Runbook](./docs/runbook.md): Production operational playbooks, failure recovery, and alerts
+- [Interview & Design Notes](./docs/interview-notes.md): Engineering tradeoffs and concurrency reasoning
+
+## Architecture Decision Records (ADRs)
+- [ADR-001: Microservices Architecture](./docs/adr/001-microservices-architecture.md)
+- [ADR-002: Apache Kafka KRaft Event Backbone](./docs/adr/002-apache-kafka-for-event-backbone.md)
+- [ADR-003: Concurrency Control in Inventory](./docs/adr/003-concurrency-control-inventory.md)
+- [ADR-004: Transactional Outbox & Saga Choreography](./docs/adr/004-transactional-outbox-and-choreography.md)
+- [ADR-005: Notification Service with SSE](./docs/adr/005-notification-service-sse.md)
+- [ADR-006: AI Assistant Tool-Calling & Streaming](./docs/adr/006-ai-assistant-tool-calling-streaming.md)
+- [ADR-007: Observability with Prometheus & Grafana](./docs/adr/007-observability-prometheus-grafana-opentelemetry.md)
+- [ADR-008: AWS Deployment Topology & MSK](./docs/adr/008-aws-deployment-topology-and-msk-migration.md)
+- [ADR-009: Real-Time Analytics & Kubernetes](./docs/adr/009-analytics-service-and-kubernetes-orchestration.md)
+- [ADR-010: Redis Caching & Idempotency](./docs/adr/010-redis-caching-idempotency-rate-limiting.md)
+
+## Event Contracts (JSON Schemas)
+- [order.created](./contracts/events/order.created.schema.json)
+- [order.confirmed](./contracts/events/order.confirmed.schema.json)
+- [order.rejected](./contracts/events/order.rejected.schema.json)
+- [order.cancelled](./contracts/events/order.cancelled.schema.json)
+- [inventory.reserved](./contracts/events/inventory.reserved.schema.json)
+- [inventory.rejected](./contracts/events/inventory.rejected.schema.json)
+- [inventory.released](./contracts/events/inventory.released.schema.json)
+- [inventory.low-stock](./contracts/events/inventory.low-stock.schema.json)
+- [product.updated](./contracts/events/product.updated.schema.json)

@@ -1,0 +1,21 @@
+---
+description: Python 3.12 and FastAPI standards for the AI Operations Assistant
+globs: services/ai-service/**
+alwaysApply: false
+---
+# Python 3.12 & FastAPI Rules
+
+## API Design & Pydantic
+- Use FastAPI async route handlers (`async def`).
+- Use Pydantic v2 `BaseModel` for all request bodies and response schemas.
+- Provide clear docstrings and descriptions for OpenAPI schema generation.
+
+## Tool Calling & LLM Fallbacks
+- LangChain / OpenAI tool definitions live in `src/tools/`.
+- Ensure mock LLM provider (`LLM_PROVIDER=mock`) remains supported so tests can run offline without API keys.
+- Stream tokens using `StreamingResponse` with `media_type="text/event-stream"`.
+
+## Testing
+- Tests are located in `tests/test_ai_service.py`.
+- Run tests via `pytest` inside the container:
+  `docker exec food-platform-ai-service pytest tests/`

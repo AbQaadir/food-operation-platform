@@ -1,0 +1,25 @@
+---
+description: React 18, Vite, Tailwind CSS, and Redux Toolkit standards for the frontend
+globs: frontend/**
+alwaysApply: false
+---
+# Frontend React 18 & Vite Rules
+
+## Architecture & State Management
+- Use **Redux Toolkit** (`@reduxjs/toolkit`) for global client and cached server state.
+- Keep slices in `src/store/`: `authSlice`, `orderSlice`, `inventorySlice`, `productSlice`, `notificationSlice`, `uiSlice`.
+- Use typed hooks: `useAppDispatch()` and `useAppSelector()`.
+- Use Axios API client in `src/api/client.ts` with request/response interceptors that inject Bearer JWT from `localStorage`.
+
+## UI & Styling
+- Use **Tailwind CSS** utility classes for responsive design and clean dark-mode-ready UI.
+- Use **Lucide React** (`lucide-react`) for icons.
+- Avoid bulky third-party component libraries; build lightweight accessible UI elements.
+
+## Real-Time Updates
+- Consume SSE notifications via custom hook or listener subscribing to `/api/v1/notifications/stream`.
+- Dispatch Redux actions on received events to update badges and toast alerts dynamically.
+
+## Testing & Verification
+- Unit & Component tests run via Vitest: `npm run test`.
+- Type checking: `npm run lint` (`tsc --noEmit`).

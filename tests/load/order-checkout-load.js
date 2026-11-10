@@ -31,11 +31,24 @@ export function setup() {
     { headers: { 'Content-Type': 'application/json' } }
   );
 
+  let productId = __ENV.PRODUCT_ID;
+  if (!productId) {
+    const prodRes = http.get(`${BASE_URL}/api/v1/products?size=1`);
+    if (prodRes.status === 200) {
+      try {
+        const pData = JSON.parse(prodRes.body);
+        if (pData.content && pData.content.length > 0) {
+          productId = pData.content[0].id;
+        }
+      } catch (e) {}
+    }
+  }
+
   if (loginRes.status === 200) {
     const data = JSON.parse(loginRes.body);
-    return { token: data.accessToken, customerId: data.user.id };
+    return { token: data.accessToken, customerId: data.user.id, productId };
   }
-  return { token: null, customerId: 'b44d2402-65ab-48fd-8a71-f1f3fdddc0bc' };
+  return { token: null, customerId: 'b44d2402-65ab-48fd-8a71-f1f3fdddc0bc', productId };
 }
 
 export default function (data) {
@@ -45,7 +58,7 @@ export default function (data) {
     customerId: data.customerId,
     items: [
       {
-        productId: 'a68d0d41-c837-4da4-8c66-e64f5ea6e761',
+        productId: data.productId || '0015fe4b-68ea-425f-a86f-61aef58e0d5e',
         qty: 1,
       },
     ],

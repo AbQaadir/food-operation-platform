@@ -1,0 +1,29 @@
+---
+description: Node.js 22 LTS and TypeScript standards for notification and analytics services
+globs: services/notification-service/**, services/analytics-service/**
+alwaysApply: false
+---
+# Node.js 22 & TypeScript Rules
+
+## TypeScript Guidelines
+- Enforce strict typing. **Never use `any`**. Use `unknown` with type guards or schema validation.
+- Define explicit interfaces for Kafka event payloads matching `contracts/events/`.
+- Use ES Modules (`import ... from '...'` with `.js` extensions where required by Node ESM).
+
+## KafkaJS Consumer Best Practices
+- Always configure `sessionTimeout: 30000`, `heartbeatInterval: 3000`.
+- Handle rebalance events cleanly; do not let unhandled promise rejections kill the process.
+- Each service must have its own consumer group (`notification-service-group`, `analytics-service-group`).
+
+## Server-Sent Events (SSE) in Notification Service
+- Set response headers:
+  ```ts
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    'Connection': 'keep-alive',
+    'Access-Control-Allow-Origin': '*'
+  });
+  ```
+- Send keep-alive heartbeats every 15-30 seconds (`: heartbeat\n\n`).
+- Clean up client subscriptions on `req.on('close')`.

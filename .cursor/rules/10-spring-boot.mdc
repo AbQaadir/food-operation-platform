@@ -1,0 +1,36 @@
+---
+description: Java 21 and Spring Boot 3 standards for core microservices
+globs: services/api-gateway/**, services/identity-service/**, services/product-service/**, services/inventory-service/**, services/order-service/**
+alwaysApply: false
+---
+# Spring Boot 3 & Java 21 Rules
+
+## Java 21 Conventions
+- Use `record` for DTOs and immutable request/response data carriers.
+- Use pattern matching for `switch` and `instanceof`.
+- Use text blocks `"""..."""` for multi-line SQL or JSON.
+- Virtual threads (Loom) are enabled in Spring Boot 3.3.
+
+## Concurrency & SQL Rules (Inventory Service)
+- Stock reservation MUST use atomic conditional SQL updates to prevent race conditions:
+  ```sql
+  UPDATE stock_levels 
+  SET reserved = reserved + :qty, version = version + 1, updated_at = NOW()
+  WHERE warehouse_id = :warehouseId 
+    AND product_id = :productId 
+    AND (on_hand - reserved) >= :qty;
+  ```
+- Do not compute stock balance in memory and save.
+- Run `InventoryConcurrencyTest.java` (50 threads) if touching stock calculation.
+
+## Error Handling & RFC 7807
+- All REST controllers must return RFC 7807 `ProblemDetail` on errors:
+  - `status`: HTTP status code
+  - `title`: Short error name
+  - `detail`: Detailed message
+  - `instance`: URI of the request
+- Global exception handlers extend `ResponseEntityExceptionHandler` or use `@ExceptionHandler(ProblemDetail.class)`.
+
+## Database Migrations
+- Use Flyway scripts in `src/main/resources/db/migration/`.
+- Naming convention: `V{N}__{description}.sql`. Never modify existing applied migrations.

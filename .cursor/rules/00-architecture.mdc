@@ -1,0 +1,22 @@
+---
+description: Universal architecture, saga choreography, and database isolation rules
+globs: *
+alwaysApply: true
+---
+# Architecture & Monorepo Rules
+
+## Database Isolation Invariant
+- Every microservice owns its own database schema (`identity_db`, `product_db`, `inventory_db`, `order_db`, `analytics_db`).
+- **Forbidden**: Writing cross-database SQL joins or queries from one service into another service's database.
+- Data exchange happens exclusively through **Kafka events** or **API Gateway REST endpoints**.
+
+## Transactional Outbox Pattern
+- When modifying order status, write the state update and the outbox event row in the **same local transaction**.
+- Outbox publisher polls and emits events to Kafka topics (`order.created`, `order.confirmed`, `order.rejected`, `order.cancelled`).
+
+## Saga Choreography
+- Event schema contracts are defined in `contracts/events/*.schema.json`.
+- Event flow: `order.created` -> `inventory-service` allocates stock -> emits `inventory.reserved` or `inventory.rejected` -> `order-service` confirms or compensates (rejects) -> `notification-service` pushes SSE alerts.
+
+## Verification
+- Before finishing any task, run: `python3 scripts/run_production_tests.py`
